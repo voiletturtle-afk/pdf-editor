@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Toolfsdfsdfkit - Free Online PDF Editor</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <title>PDF Toolkit - Free Online PDF Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.449/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.4/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -16,7 +16,6 @@
             transform: translateY(-4px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-
         .preview-thumbnail {
             border: 2px solid transparent;
         }
@@ -32,7 +31,6 @@
             <h1 class="text-4xl font-bold text-gray-800">📄 PDF Toolkit</h1>
             <p class="text-gray-600 mt-2">Free online PDF editor - All processing happens in your browser</p>
         </div>
-
         <!-- Tools Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <!-- PDF to JPEG -->
@@ -41,56 +39,48 @@
                 <h3 class="text-xl font-semibold mb-2">PDF to JPEG</h3>
                 <p class="text-gray-600">Convert PDF pages to JPEG/PNG images</p>
             </div>
-
             <!-- Compress PDF -->
             <div class="tool-card bg-white p-6 rounded-lg shadow-md cursor-pointer" onclick="showTool('compress')">
                 <div class="text-4xl mb-3">🗜️</div>
                 <h3 class="text-xl font-semibold mb-2">Compress PDF</h3>
                 <p class="text-gray-600">Reduce PDF file size</p>
             </div>
-
             <!-- Merge PDFs -->
             <div class="tool-card bg-white p-6 rounded-lg shadow-md cursor-pointer" onclick="showTool('merge')">
                 <div class="text-4xl mb-3">📑</div>
                 <h3 class="text-xl font-semibold mb-2">Merge PDFs</h3>
                 <p class="text-gray-600">Combine multiple PDF files</p>
             </div>
-
             <!-- Split PDF -->
             <div class="tool-card bg-white p-6 rounded-lg shadow-md cursor-pointer" onclick="showTool('split')">
                 <div class="text-4xl mb-3">✂️</div>
                 <h3 class="text-xl font-semibold mb-2">Split PDF</h3>
                 <p class="text-gray-600">Extract specific pages</p>
             </div>
-
             <!-- Annotate -->
             <div class="tool-card bg-white p-6 rounded-lg shadow-md cursor-pointer" onclick="showTool('annotate')">
                 <div class="text-4xl mb-3">✏️</div>
                 <h3 class="text-xl font-semibold mb-2">Annotate PDF</h3>
                 <p class="text-gray-600">Add text, drawings, shapes</p>
             </div>
-
             <!-- Rotate/Reorder -->
             <div class="tool-card bg-white p-6 rounded-lg shadow-md cursor-pointer" onclick="showTool('organize')">
                 <div class="text-4xl mb-3">🔄</div>
                 <h3 class="text-xl font-semibold mb-2">Organize Pages</h3>
                 <p class="text-gray-600">Rotate, reorder, delete pages</p>
             </div>
-
             <!-- Extract Images -->
             <div class="tool-card bg-white p-6 rounded-lg shadow-md cursor-pointer" onclick="showTool('extract-images')">
                 <div class="text-4xl mb-3">🎨</div>
                 <h3 class="text-xl font-semibold mb-2">Extract Images</h3>
                 <p class="text-gray-600">Get all images from PDF</p>
             </div>
-
             <!-- Add Watermark -->
             <div class="tool-card bg-white p-6 rounded-lg shadow-md cursor-pointer" onclick="showTool('watermark')">
                 <div class="text-4xl mb-3">💧</div>
                 <h3 class="text-xl font-semibold mb-2">Add Watermark</h3>
                 <p class="text-gray-600">Add text watermark to pages</p>
             </div>
-
             <!-- PDF Info -->
             <div class="tool-card bg-white p-6 rounded-lg shadow-md cursor-pointer" onclick="showTool('info')">
                 <div class="text-4xl mb-3">ℹ️</div>
@@ -98,7 +88,6 @@
                 <p class="text-gray-600">View PDF details & metadata</p>
             </div>
         </div>
-
         <!-- Tool Workspace -->
         <div id="workspace" class="hidden bg-white p-8 rounded-lg shadow-lg">
             <div class="flex justify-between items-center mb-6">
@@ -107,31 +96,26 @@
                     ✕ Close
                 </button>
             </div>
-            
+           
             <div id="toolContent"></div>
         </div>
-
         <!-- Footer -->
         <div class="mt-12 text-center text-gray-600">
             <p>🔒 All processing happens locally in your browser. Your files are never uploaded to any server.</p>
         </div>
     </div>
-
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.449/pdf.worker.min.js';
         let currentPdf = null;
         let pdfFiles = [];
         let selectedPages = [];
-
         function showTool(toolName) {
             const workspace = document.getElementById('workspace');
             const title = document.getElementById('workspaceTitle');
             const content = document.getElementById('toolContent');
-            
+           
             workspace.classList.remove('hidden');
             workspace.scrollIntoView({ behavior: 'smooth' });
-
             const tools = {
                 'pdf-to-jpeg': {
                     title: '🖼️ PDF to JPEG Converter',
@@ -260,46 +244,38 @@
                     init: initInfo
                 }
             };
-
             const tool = tools[toolName];
             title.textContent = tool.title;
             content.innerHTML = tool.html;
             tool.init();
         }
-
         function closeWorkspace() {
             document.getElementById('workspace').classList.add('hidden');
             currentPdf = null;
             pdfFiles = [];
             selectedPages = [];
         }
-
         // PDF to JPEG
         function initPdfToJpeg() {
             const fileInput = document.getElementById('fileInput');
             const qualitySlider = document.getElementById('imageQuality');
             const qualityValue = document.getElementById('qualityValue');
-            
+           
             qualitySlider.addEventListener('input', (e) => {
                 qualityValue.textContent = e.target.value;
             });
-
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
                 const output = document.getElementById('output');
                 output.innerHTML = '<p class="text-blue-500">Converting...</p>';
-
                 try {
                     const arrayBuffer = await file.arrayBuffer();
                     const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
                     const format = document.getElementById('imageFormat').value;
                     const quality = parseInt(qualitySlider.value) / 100;
-
                     output.innerHTML = '<div class="grid grid-cols-2 gap-4"></div>';
                     const grid = output.querySelector('div');
-
                     for (let i = 1; i <= pdf.numPages; i++) {
                         const page = await pdf.getPage(i);
                         const viewport = page.getViewport({ scale: 2 });
@@ -307,9 +283,7 @@
                         const context = canvas.getContext('2d');
                         canvas.width = viewport.width;
                         canvas.height = viewport.height;
-
                         await page.render({ canvasContext: context, viewport }).promise;
-
                         const imgData = canvas.toDataURL(`image/${format}`, quality);
                         const div = document.createElement('div');
                         div.innerHTML = `
@@ -325,37 +299,30 @@
                 }
             });
         }
-
         // Compress PDF
         function initCompress() {
             const fileInput = document.getElementById('fileInput');
-
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
                 const output = document.getElementById('output');
                 output.innerHTML = '<p class="text-blue-500">Compressing...</p>';
-
                 try {
                     const arrayBuffer = await file.arrayBuffer();
                     const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                    
+                   
                     const level = document.getElementById('compressionLevel').value;
                     const options = {
                         low: { useObjectStreams: false },
                         medium: { useObjectStreams: true },
                         high: { useObjectStreams: true, addDefaultPage: false }
                     };
-
                     const pdfBytes = await pdfDoc.save(options[level]);
                     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                     const url = URL.createObjectURL(blob);
-
                     const originalSize = (file.size / 1024).toFixed(2);
                     const compressedSize = (blob.size / 1024).toFixed(2);
                     const savings = ((1 - blob.size / file.size) * 100).toFixed(1);
-
                     output.innerHTML = `
                         <div class="bg-green-50 p-4 rounded mb-4">
                             <p class="font-semibold">Compression Complete!</p>
@@ -372,13 +339,11 @@
                 }
             });
         }
-
         // Merge PDFs
         function initMerge() {
             const fileInput = document.getElementById('fileInput');
             const fileList = document.getElementById('fileList');
             const mergeBtn = document.getElementById('mergeBtn');
-
             fileInput.addEventListener('change', (e) => {
                 pdfFiles = Array.from(e.target.files);
                 fileList.innerHTML = pdfFiles.map((f, i) => `
@@ -388,25 +353,20 @@
                 `).join('');
                 mergeBtn.classList.remove('hidden');
             });
-
             mergeBtn.addEventListener('click', async () => {
                 const output = document.getElementById('output');
                 output.innerHTML = '<p class="text-blue-500">Merging PDFs...</p>';
-
                 try {
                     const mergedPdf = await PDFLib.PDFDocument.create();
-
                     for (const file of pdfFiles) {
                         const arrayBuffer = await file.arrayBuffer();
                         const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
                         const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
                         pages.forEach(page => mergedPdf.addPage(page));
                     }
-
                     const pdfBytes = await mergedPdf.save();
                     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                     const url = URL.createObjectURL(blob);
-
                     output.innerHTML = `
                         <p class="text-green-500 mb-4">✓ Successfully merged ${pdfFiles.length} PDFs!</p>
                         <a href="${url}" download="merged.pdf" class="inline-block px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600">
@@ -418,23 +378,19 @@
                 }
             });
         }
-
         // Split PDF
         function initSplit() {
             const fileInput = document.getElementById('fileInput');
             const pageSelector = document.getElementById('pageSelector');
             const pageList = document.getElementById('pageList');
             const extractBtn = document.getElementById('extractBtn');
-
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
                 const arrayBuffer = await file.arrayBuffer();
                 currentPdf = await PDFLib.PDFDocument.load(arrayBuffer);
                 const numPages = currentPdf.getPageCount();
                 selectedPages = [];
-
                 pageList.innerHTML = '';
                 for (let i = 0; i < numPages; i++) {
                     const btn = document.createElement('button');
@@ -451,28 +407,22 @@
                     };
                     pageList.appendChild(btn);
                 }
-
                 pageSelector.classList.remove('hidden');
             });
-
             extractBtn.addEventListener('click', async () => {
                 if (selectedPages.length === 0) {
                     alert('Please select at least one page');
                     return;
                 }
-
                 const output = document.getElementById('output');
                 output.innerHTML = '<p class="text-blue-500">Extracting pages...</p>';
-
                 try {
                     const newPdf = await PDFLib.PDFDocument.create();
                     const pages = await newPdf.copyPages(currentPdf, selectedPages);
                     pages.forEach(page => newPdf.addPage(page));
-
                     const pdfBytes = await newPdf.save();
                     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                     const url = URL.createObjectURL(blob);
-
                     output.innerHTML = `
                         <p class="text-green-500 mb-4">✓ Extracted ${selectedPages.length} pages!</p>
                         <a href="${url}" download="extracted.pdf" class="inline-block px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600">
@@ -484,46 +434,38 @@
                 }
             });
         }
-
         // Annotate PDF
         let annotationTool = 'text';
         let isDrawing = false;
         let annotations = [];
-
         function setTool(tool) {
             annotationTool = tool;
         }
-
         function initAnnotate() {
             const fileInput = document.getElementById('fileInput');
             const annotationTools = document.getElementById('annotationTools');
             const canvas = document.getElementById('annotationCanvas');
             const ctx = canvas.getContext('2d');
             const saveBtn = document.getElementById('saveAnnotated');
-
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
                 currentPdf = await PDFLib.PDFDocument.load(arrayBuffer);
-                
+               
                 const page = await pdf.getPage(1);
                 const viewport = page.getViewport({ scale: 1.5 });
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
-
                 await page.render({ canvasContext: ctx, viewport }).promise;
                 annotationTools.classList.remove('hidden');
                 annotations = [];
             });
-
             canvas.addEventListener('mousedown', (e) => {
                 const rect = canvas.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
-
                 if (annotationTool === 'text') {
                     const text = prompt('Enter text:');
                     if (text) {
@@ -540,7 +482,6 @@
                     ctx.lineWidth = 3;
                 }
             });
-
             canvas.addEventListener('mousemove', (e) => {
                 if (isDrawing) {
                     const rect = canvas.getBoundingClientRect();
@@ -550,11 +491,9 @@
                     ctx.stroke();
                 }
             });
-
             canvas.addEventListener('mouseup', () => {
                 isDrawing = false;
             });
-
             saveBtn.addEventListener('click', async () => {
                 const imgData = canvas.toDataURL('image/png');
                 const output = document.getElementById('output');
@@ -563,3 +502,53 @@
                     <a href="${imgData}" download="annotated-page.png" class="inline-block px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600">
                         Download as Image
                     </a>
+                `;
+            });
+        }
+        // Stub for Organize Pages (expand as needed)
+        function initOrganize() {
+            const fileInput = document.getElementById('fileInput');
+            const organizeTools = document.getElementById('organizeTools');
+            const output = document.getElementById('output');
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                organizeTools.classList.remove('hidden');
+                output.innerHTML = '<p class="text-blue-500">Loaded PDF. Organize functionality not fully implemented yet.</p>';
+            });
+        }
+        // Stub for Extract Images (expand as needed)
+        function initExtractImages() {
+            const fileInput = document.getElementById('fileInput');
+            const output = document.getElementById('output');
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                output.innerHTML = '<p class="text-blue-500">Extract images functionality not fully implemented yet.</p>';
+            });
+        }
+        // Stub for Add Watermark (expand as needed)
+        function initWatermark() {
+            const fileInput = document.getElementById('fileInput');
+            const watermarkSettings = document.getElementById('watermarkSettings');
+            const output = document.getElementById('output');
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                watermarkSettings.classList.remove('hidden');
+                output.innerHTML = '<p class="text-blue-500">Watermark functionality not fully implemented yet.</p>';
+            });
+        }
+        // Stub for PDF Info (expand as needed)
+        function initInfo() {
+            const fileInput = document.getElementById('fileInput');
+            const output = document.getElementById('output');
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                output.innerHTML = '<p class="text-blue-500">PDF info functionality not fully implemented yet.</p>';
+            });
+        }
+    </script>
+</body>
+</html>
