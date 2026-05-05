@@ -824,24 +824,52 @@ function cropWhitespace(src) {
   return out;
 }
 
-function cleanOcrText(text, lang) {
-  let t = String(text || '')
-    .replace(/\r/g, '')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+function cleanDhivehiNoise(text) {
+    if (!text) return '';
 
-  if (lang === 'eng') {
-    t = t.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '');
-  } else if (lang === 'thaa') {
-    t = t.replace(/[^\u0780-\u07BF0-9\s،؛؟,.:%()\-–—/]/g, '');
-    t = cleanDhivehiNoise(t);
-  } else if (lang === 'thaa+eng') {
-    t = t.replace(/[^\u0780-\u07BF\x09\x0A\x0D\x20-\x7E،؛؟]/g, '');
-    t = cleanDhivehiNoise(t);
-  }
-  return t.replace(/\n{3,}/g, '\n\n').trim();
+    return text
+        // Fix common Thaana OCR mistakes
+        .replace(/ްް+/g, 'ް')           // Remove duplicate sukun
+        .replace(/[ް]+/g, 'ް')           // Normalize sukun
+        .replace(/[\u200B\u200C\u200D\uFEFF]/g, '') // Remove zero-width characters
+        .replace(/[\u00A0\u1680\u180E\u2000-\u200F\u202F\u205F\u3000]/g, ' ') // Normalize spaces
+        .replace(/[،؛؟]+/g, match => match[0])     // Remove duplicate punctuation
+        .replace(/(\s)\1+/g, '$1')                  // Remove duplicate spaces
+        .replace(/\n\s*\n\s*\n/g, '\n\n')           // Reduce excessive line breaks
+        // Common misrecognitions in Thaana
+        .replace(/އް/g, 'އް')   // Sometimes OCR breaks letters
+        .replace(/ށ/g, 'ށ')
+        .replace(/ތ/g, 'ތ')
+        .trim();
+}
+
+function cleanOcrText(text, lang = 'thaa+eng') {
+    let t = String(text || '').trim();
+
+    if (!t) return '';
+
+    if (lang === 'eng' || lang === 'english') {
+        // English only - remove everything non-ASCII printable
+        t = t.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '');
+    } 
+    else if (lang === 'thaa' || lang === 'div') {
+        // Pure Thaana
+        t = t.replace(/[^\u0780-\u07BF0-9\s\t\n\r،؛؟.،:;%()\-–—\/]/g, '');
+        t = cleanDhivehiNoise(t);
+    } 
+    else {
+        // Default: thaa+eng (mixed)
+        t = t.replace(/[^\u0780-\u07BF\x09\x0A\x0D\x20-\x7E،؛؟.،:;%()\-–—\/]/g, '');
+        t = cleanDhivehiNoise(t);
+    }
+    // Final cleanup
+    t = t
+        .replace(/\n{3,}/g, '\n\n')           // Max 2 line breaks
+        .replace(/[ \t]+/g, ' ')              // Normalize spaces
+        .replace(/ \n/g, '\n')                // Remove trailing spaces before newline
+        .trim();
+
+    return t;
 }
 
 function cleanDhivehiNoise(t) {
