@@ -644,8 +644,8 @@ function withTimeout(promise, ms, message) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-const OCR_MODEL_TIMEOUT_MS = 300000; // 5 minutes. First Dhivehi download can be slow on some networks.
-const LOCAL_TESSDATA_PATH = './tessdata';
+const OCR_MODEL_TIMEOUT_MS = 150000; // 2.5 minutes. First Dhivehi download can be slow on some networks.
+const LOCAL_TESSDATA_PATH = './tessdata/script';
 const CDN_TESSDATA_PATH = 'https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_fast@main';
 
 function langFileUrl(langPath, langCode) {
@@ -699,8 +699,8 @@ async function createOcrWorker(tessLang, baseOptions, setP) {
 function getTesseractLang(uiLang) {
   // Dhivehi uses Thaana script data. This is more reliable in browser Tesseract than "div".
   if (uiLang === 'eng') return 'eng';
-  if (uiLang === 'thaa') return 'script/Thaana';
-  if (uiLang === 'thaa+eng') return ['script/Thaana', 'eng'];
+  if (uiLang === 'thaa') return 'Thaana';
+  if (uiLang === 'thaa+eng') return ['Thaana', 'eng'];
   return 'eng';
 }
 
