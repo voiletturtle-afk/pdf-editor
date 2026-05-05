@@ -259,7 +259,7 @@ const TOOLS = [
   { id:'split',    label:'Split PDF',        desc:'Extract specific pages into a new PDF',      icon:'split'    },
   { id:'rotate',   label:'Rotate Pages',     desc:'Rotate all pages 90°, 180° or 270°',        icon:'rotate'   },
   { id:'info',     label:'PDF Info',         desc:'Inspect metadata, page count & dimensions',  icon:'info'     },
-  { id:'ocr',      label:'PDF to Text (OCR)', desc:'Extract text from scans. Supports Dhivehi/Thaana.', icon:'ocr', isNew:true },
+  { id:'ocr',      label:'PDF/Image to Text (OCR)', desc:'Extract English or Dhivehi/Thaana text only.', icon:'ocr', isNew:true },
 ];
 
 /* ── Build grid ── */
@@ -381,39 +381,46 @@ function toolHTML(id) {
 
     case 'ocr': return `
       <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px;line-height:1.6">
-        Renders each page as an image and runs OCR locally in your browser.
-        Selecting <strong>Dhivehi</strong> automatically switches the output to right-to-left (Thaana script).
+        Runs OCR locally in your browser and returns <strong>plain text only</strong>.
+        Choose English or Dhivehi/Thaana. Preprocessing improves scanned pages before OCR.
       </p>
-      ${dz(false,'or click to browse')}
+      <div class="drop-zone" id="dz">
+        <input type="file" id="ocrFile" accept=".pdf,image/*">
+        <div class="dz-icon">${I.upload}</div>
+        <strong>Drop your PDF or image here</strong>
+        <span>PDF, PNG, JPG, JPEG, WEBP</span>
+        <div class="file-chosen"></div>
+      </div>
       <div class="ctrl-row">
         <div class="ctrl-grp"><label>Language</label>
           <select id="ocrLang">
             <option value="eng">English</option>
-            <optgroup label="── Dhivehi / Thaana ──">
-              <option value="div">Dhivehi — ދިވެހި</option>
-              <option value="div+eng">Dhivehi + English (mixed)</option>
-            </optgroup>
-            <optgroup label="── Other ──">
-              <option value="ara">Arabic</option>
-              <option value="fra">French</option>
-              <option value="deu">German</option>
-              <option value="spa">Spanish</option>
-              <option value="por">Portuguese</option>
-              <option value="ita">Italian</option>
-              <option value="chi_sim">Chinese (Simplified)</option>
-              <option value="jpn">Japanese</option>
-              <option value="kor">Korean</option>
-              <option value="rus">Russian</option>
-              <option value="hin">Hindi</option>
-            </optgroup>
+            <option value="thaa">Dhivehi / Thaana — ދިވެހި</option>
+            <option value="thaa+eng">Dhivehi + English</option>
           </select></div>
-        <div class="ctrl-grp"><label>Render Quality</label>
+        <div class="ctrl-grp"><label>Quality</label>
           <select id="ocrScale">
-            <option value="2">Standard — faster</option>
-            <option value="3">High — slower, more accurate</option>
+            <option value="2.5">Fast</option>
+            <option value="3">Balanced</option>
+            <option value="4" selected>High accuracy</option>
+          </select></div>
+        <div class="ctrl-grp"><label>Preprocess</label>
+          <select id="ocrPrep">
+            <option value="clean" selected>Clean scan</option>
+            <option value="strong">Strong black/white</option>
+            <option value="none">None</option>
+          </select></div>
+        <div class="ctrl-grp"><label>Layout</label>
+          <select id="ocrPsm">
+            <option value="6" selected>Normal page/block</option>
+            <option value="4">Single column</option>
+            <option value="11">Scattered text</option>
+            <option value="3">Auto</option>
           </select></div>
       </div>
-      <p style="font-size:.72rem;color:var(--faint);margin-bottom:14px">💡 First run downloads the language model (~10–20 MB). Subsequent runs use the browser cache.</p>
+      <p style="font-size:.72rem;color:var(--faint);margin-bottom:14px">
+        First run downloads the selected language model. Best results: clear scan, straight page, black text on white background.
+      </p>
       <div id="output"></div>`;
   }
 }
@@ -603,127 +610,395 @@ function initInfo() {
   });
 }
 
-/* ── OCR ── */
+/* ── OCR: PDF/Image → plain text only ── */
 function initOcr() {
-  dropZone('dz','pdfFile',false, async files => {
+  dropZone('dz','ocrFile',false, async files => {
     const file = files[0]; if (!file) return;
     showChosen('dz', files);
     await runOcr(file);
   });
 }
 
+function isImageFile(file) {
+  return /^image\//i.test(file.type) || /\.(png|jpe?g|webp|bmp|tif|tiff)$/i.test(file.name);
+}
+
+function isPdfFile(file) {
+  return file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+}
+
+function readableError(err) {
+  if (!err) return 'Unknown error.';
+  if (typeof err === 'string') return err;
+  if (err.message) return err.message;
+  if (err.type) return `${err.type}${err.target?.error ? ': ' + err.target.error : ''}`;
+  try { return JSON.stringify(err); } catch { return String(err); }
+}
+
+function withTimeout(promise, ms, message) {
+  if (!ms || ms <= 0) return promise;
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+const OCR_MODEL_TIMEOUT_MS = 300000; // 5 minutes. First Dhivehi download can be slow on some networks.
+const LOCAL_TESSDATA_PATH = './tessdata';
+const CDN_TESSDATA_PATH = 'https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_fast@main';
+
+function langFileUrl(langPath, langCode) {
+  return langPath.replace(/\/$/, '') + '/' + langCode + '.traineddata';
+}
+
+async function localModelsExist(langPath, langs) {
+  const list = Array.isArray(langs) ? langs : [langs];
+  try {
+    for (const lang of list) {
+      const res = await fetch(langFileUrl(langPath, lang), { method:'HEAD', cache:'no-store' });
+      if (!res.ok) return false;
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function createOcrWorker(tessLang, baseOptions, setP) {
+  const localReady = await localModelsExist(LOCAL_TESSDATA_PATH, tessLang);
+  const candidates = localReady
+    ? [
+        { name:'local ./tessdata', langPath:LOCAL_TESSDATA_PATH, timeout:OCR_MODEL_TIMEOUT_MS },
+        { name:'CDN fallback', langPath:CDN_TESSDATA_PATH, timeout:OCR_MODEL_TIMEOUT_MS }
+      ]
+    : [
+        { name:'CDN', langPath:CDN_TESSDATA_PATH, timeout:OCR_MODEL_TIMEOUT_MS }
+      ];
+
+  let lastErr = null;
+  for (const c of candidates) {
+    try {
+      setP(32, `Loading OCR model from ${c.name}… first run can take a while.`);
+      return await withTimeout(Tesseract.createWorker(tessLang, 1, {
+        ...baseOptions,
+        langPath: c.langPath,
+        gzip: false,
+        cacheMethod: 'write'
+      }), c.timeout, `OCR model download timed out from ${c.name}.`);
+    } catch (err) {
+      lastErr = err;
+      console.warn('OCR model source failed:', c.name, err);
+    }
+  }
+
+  throw new Error((lastErr && lastErr.message ? lastErr.message : 'OCR model could not be loaded.') +
+    ' For GitHub Pages, add traineddata files to /tessdata or check CDN access.');
+}
+
+function getTesseractLang(uiLang) {
+  // Dhivehi uses Thaana script data. This is more reliable in browser Tesseract than "div".
+  if (uiLang === 'eng') return 'eng';
+  if (uiLang === 'thaa') return 'script/Thaana';
+  if (uiLang === 'thaa+eng') return ['script/Thaana', 'eng'];
+  return 'eng';
+}
+
+async function fileToCanvas(file, scale) {
+  let img;
+
+  // createImageBitmap is more reliable for uploaded images than <img> object URLs.
+  if ('createImageBitmap' in window) {
+    try {
+      img = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch (_) { img = null; }
+  }
+
+  if (!img) {
+    img = await new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+      image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not load this image. Try PNG or JPG.')); };
+      image.src = url;
+    });
+  }
+
+  const w = img.width || img.naturalWidth;
+  const h = img.height || img.naturalHeight;
+  if (!w || !h) throw new Error('Image has no readable width/height.');
+
+  // OCR needs enough pixels, but huge canvases crash mobile browsers.
+  const maxSide = scale >= 4 ? 5200 : 4000;
+  const ratio = Math.min(scale, maxSide / Math.max(w, h));
+  const finalRatio = Math.max(0.35, ratio);
+
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(w * finalRatio));
+  cv.height = Math.max(1, Math.round(h * finalRatio));
+
+  const ctx = cv.getContext('2d', { willReadFrequently:true });
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, cv.width, cv.height);
+
+  if (img.close) img.close();
+  return cv;
+}
+
+async function pdfPageToCanvas(page, scale) {
+  const vp = page.getViewport({ scale });
+  const cv = document.createElement('canvas');
+  cv.width = Math.floor(vp.width);
+  cv.height = Math.floor(vp.height);
+
+  const ctx = cv.getContext('2d', { willReadFrequently:true });
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  await page.render({ canvasContext:ctx, viewport:vp, background:'#ffffff' }).promise;
+  return cv;
+}
+
+function preprocessCanvas(src, mode='clean') {
+  if (mode === 'none') return src;
+
+  const ctx = src.getContext('2d', { willReadFrequently:true });
+  const img = ctx.getImageData(0, 0, src.width, src.height);
+  const d = img.data;
+
+  const strong = mode === 'strong';
+  const contrast = strong ? 1.8 : 1.32;
+  const threshold = strong ? 170 : 188;
+
+  for (let i = 0; i < d.length; i += 4) {
+    let g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    g = (g - 128) * contrast + 128;
+    g = Math.max(0, Math.min(255, g));
+
+    if (strong) {
+      g = g < threshold ? 0 : 255;
+    } else {
+      // Soft threshold keeps Thaana fili marks better than full binarisation.
+      if (g < threshold - 42) g = 0;
+      else if (g > threshold + 42) g = 255;
+    }
+
+    d[i] = d[i+1] = d[i+2] = g;
+    d[i+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return cropWhitespace(src);
+}
+
+function cropWhitespace(src) {
+  const ctx = src.getContext('2d', { willReadFrequently:true });
+  const { width:w, height:h } = src;
+  const img = ctx.getImageData(0, 0, w, h).data;
+
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for (let y = 0; y < h; y += 2) {
+    for (let x = 0; x < w; x += 2) {
+      const i = (y*w + x) * 4;
+      if (img[i] < 245 || img[i+1] < 245 || img[i+2] < 245) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0 || maxY < 0 || minX >= maxX || minY >= maxY) return src;
+
+  const pad = 28;
+  minX = Math.max(0, minX - pad);
+  minY = Math.max(0, minY - pad);
+  maxX = Math.min(w, maxX + pad);
+  maxY = Math.min(h, maxY + pad);
+
+  const out = document.createElement('canvas');
+  out.width = maxX - minX;
+  out.height = maxY - minY;
+  out.getContext('2d').drawImage(src, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
+}
+
+function cleanOcrText(text, lang) {
+  let t = String(text || '')
+    .replace(/\r/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  if (lang === 'eng') {
+    t = t.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '');
+  } else if (lang === 'thaa') {
+    t = t.replace(/[^\u0780-\u07BF0-9\s،؛؟,.:%()\-–—/]/g, '');
+    t = cleanDhivehiNoise(t);
+  } else if (lang === 'thaa+eng') {
+    t = t.replace(/[^\u0780-\u07BF\x09\x0A\x0D\x20-\x7E،؛؟]/g, '');
+    t = cleanDhivehiNoise(t);
+  }
+  return t.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function cleanDhivehiNoise(t) {
+  return t.split('\n').map(line => {
+    line = line.trim();
+    // Remove common OCR garbage: many isolated single Thaana marks/letters in one line.
+    line = line.replace(/(?:^|\s)[\u0780-\u07BF](?=\s|$)/g, ' ');
+    line = line.replace(/\s{2,}/g, ' ').trim();
+    return line;
+  }).filter(line => {
+    if (!line) return false;
+    const thaana = (line.match(/[\u0780-\u07BF]/g) || []).length;
+    const meaningful = (line.match(/[\u0780-\u07BF0-9]/g) || []).length;
+    // Drop tiny noisy lines but keep short headings/numbers.
+    if (meaningful < 3 && line.length < 10) return false;
+    // Drop lines that are mostly isolated noise after filtering.
+    if (line.length > 12 && thaana > 0 && thaana / line.length < 0.18) return false;
+    return true;
+  }).join('\n');
+}
+
+function thaanaWhitelist(includeEnglish=false) {
+  let th = '';
+  for (let cp = 0x0780; cp <= 0x07BF; cp++) th += String.fromCharCode(cp);
+  const numsPunct = '0123456789 %().,:;/-–—\n ';
+  const english = includeEnglish ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' : '';
+  return th + numsPunct + english;
+}
+
 async function runOcr(file) {
-  const out   = document.getElementById('output');
-  const lang  = document.getElementById('ocrLang').value;
-  const scale = parseInt(document.getElementById('ocrScale').value) || 3;
+  const out = document.getElementById('output');
+  const uiLang = document.getElementById('ocrLang').value;
+  const tessLang = getTesseractLang(uiLang);
+  const scale = parseFloat(document.getElementById('ocrScale').value);
+  const prep = document.getElementById('ocrPrep').value;
+  const psm = document.getElementById('ocrPsm')?.value || '6';
+  const rtl = uiLang.includes('thaa');
 
   out.innerHTML = `
     <div class="status s-info">
       ${I.warn}
       <div style="flex:1">
-        <strong>Running OCR on PDF...</strong>
+        <strong>Running OCR locally…</strong>
         <div class="prog-wrap"><div class="prog-bar" id="ocrBar"></div></div>
-        <p class="prog-lbl" id="ocrLog">Loading PDF…</p>
+        <p class="prog-lbl" id="ocrLog">Preparing file…</p>
       </div>
     </div>`;
 
   const setP = (pct, msg) => {
     const b = document.getElementById('ocrBar');
     const l = document.getElementById('ocrLog');
-    if (b) b.style.width = pct + '%';
+    if (b) b.style.width = Math.max(0, Math.min(100, pct)) + '%';
     if (l) l.textContent = msg;
   };
 
+  let worker = null;
   try {
-    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-    const n   = pdf.numPages;
-    setP(10, `PDF loaded — ${n} page(s). Initializing OCR...`);
+    if (!isPdfFile(file) && !isImageFile(file)) throw new Error('Please choose a PDF or image file.');
 
-    // Better language handling for Thaana
-    let ocrLang = lang;
-    if (lang === 'div' || lang === 'div+eng') {
-      ocrLang = 'tha+eng';   // tha often works better than div
+    const canvases = [];
+    if (isPdfFile(file)) {
+      setP(3, 'Loading PDF…');
+      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        setP(3 + (i/pdf.numPages)*25, `Rendering page ${i} of ${pdf.numPages}…`);
+        const page = await pdf.getPage(i);
+        const cv = await pdfPageToCanvas(page, scale);
+        canvases.push({ page:i, canvas:preprocessCanvas(cv, prep) });
+      }
+    } else {
+      setP(10, 'Loading image…');
+      const cv = await fileToCanvas(file, scale);
+      canvases.push({ page:1, canvas:preprocessCanvas(cv, prep) });
     }
 
-    const worker = await Tesseract.createWorker(ocrLang, 1, {
-      logger: m => console.log(m)
-    });
+    setP(32, 'Loading OCR model. First run may take 30–90 seconds…');
 
-    const texts = [];
+    worker = await createOcrWorker(tessLang, {
+      logger: m => {
+        if (m.status === 'recognizing text' && typeof m.progress === 'number') {
+          setP(38 + m.progress * 52, `Recognising text… ${Math.round(m.progress * 100)}%`);
+        } else if (m.status) {
+          setP(35, m.status);
+        }
+      },
+      errorHandler: err => console.error('Tesseract worker error:', err)
+    }, setP);
 
-    for (let i = 1; i <= n; i++) {
-      setP(10 + ((i-1)/n)*80, `Processing page ${i} of ${n}...`);
+    const params = {
+      tessedit_pageseg_mode: psm,
+      preserve_interword_spaces: '1'
+    };
+    if (uiLang === 'thaa') params.tessedit_char_whitelist = thaanaWhitelist(false);
+    if (uiLang === 'thaa+eng') params.tessedit_char_whitelist = thaanaWhitelist(true);
+    await worker.setParameters(params);
 
-      const page = await pdf.getPage(i);
-      const vp   = page.getViewport({ scale: scale });
-      const cv   = document.createElement('canvas');
-      cv.width = vp.width;
-      cv.height = vp.height;
-      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
-
-      // Improved recognition settings
-      const { data: { text } } = await worker.recognize(cv, {
-        tessedit_pageseg_mode: '3',           // Fully automatic
-        preserve_interword_spaces: '1'
-      });
-
-      texts.push({ page: i, text: text.trim() });
+    const parts = [];
+    for (let i = 0; i < canvases.length; i++) {
+      const item = canvases[i];
+      setP(38 + (i/canvases.length)*52, `OCR page ${item.page} of ${canvases.length}…`);
+      const result = await worker.recognize(item.canvas);
+      const rawText = result?.data?.text || '';
+      const cleaned = cleanOcrText(rawText, uiLang);
+      if (cleaned) parts.push(canvases.length > 1 ? `Page ${item.page}\n${cleaned}` : cleaned);
+      item.canvas.width = 1;
+      item.canvas.height = 1;
     }
 
     await worker.terminate();
-    setP(100, 'OCR Complete!');
+    worker = null;
 
-    const fullText = texts.map(p => 
-      n > 1 ? `[Page ${p.page}]\n${p.text}` : p.text
-    ).join('\n\n' + '─'.repeat(50) + '\n\n');
+    const full = parts.join('\n\n');
+    const chars = full.length;
+    const words = full.split(/\s+/).filter(Boolean).length;
 
-    const isRTL = lang.includes('div') || lang.includes('ara');
-
-    window._ocrText = fullText;
-    window._ocrFilename = file.name.replace(/\.pdf$/i, '') + '_ocr.txt';
+    window._ocrText = full;
+    window._ocrFilename = file.name.replace(/\.[^.]+$/i, '') + '_ocr.txt';
 
     out.innerHTML = `
-      ${status('success', `OCR finished — ${n} page(s) • ${fullText.split(/\s+/).filter(Boolean).length.toLocaleString()} words`)}
-      <textarea class="ocr-box" id="ocrText" spellcheck="false" 
-                dir="${isRTL ? 'rtl' : 'ltr'}" 
-                style="text-align:${isRTL ? 'right' : 'left'}; font-size:0.9rem; line-height:1.8;">
-${esc(fullText)}
-      </textarea>
-      <div class="btn-row" style="margin-top:12px;">
-        <button class="btn btn-success" onclick="dlOcr()">${I.download} Download Text</button>
-        <button class="btn btn-ghost" onclick="cpOcr(this)">${I.copy} Copy Text</button>
+      ${status('success', `OCR complete — ${words.toLocaleString()} words · ${chars.toLocaleString()} characters`)}
+      <textarea class="ocr-box" id="ocrText" spellcheck="false" dir="${rtl?'rtl':'ltr'}" style="text-align:${rtl?'right':'left'}">${esc(full)}</textarea>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="dlOcr()">${I.download} Download .txt</button>
+        <button class="btn btn-ghost" onclick="cpOcr(this)">${I.copy} Copy to Clipboard</button>
       </div>`;
-  } catch(err) {
+  } catch (err) {
+    if (worker) { try { await worker.terminate(); } catch (_) {} }
+    out.innerHTML = status('error', `OCR failed: ${readableError(err)}`);
     console.error(err);
-    out.innerHTML = status('error', `OCR Error: ${err.message}`);
   }
 }
 
 function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function dlOcr() {
-  const text = window._ocrText || document.getElementById('ocrText')?.value;
-  if (!text) return alert("No text to download");
+  const t = document.getElementById('ocrText')?.value || window._ocrText || '';
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], {type: 'text/plain;charset=utf-8'}));
-  a.download = window._ocrFilename || 'extracted_text.txt';
+  a.href = URL.createObjectURL(new Blob([t], { type:'text/plain;charset=utf-8' }));
+  a.download = window._ocrFilename || 'ocr_output.txt';
   a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 async function cpOcr(btn) {
-  const text = window._ocrText || document.getElementById('ocrText')?.value;
-  if (!text) return;
+  const t = document.getElementById('ocrText')?.value || '';
   try {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(t);
     const orig = btn.innerHTML;
     btn.innerHTML = I.check + ' Copied!';
-    setTimeout(() => btn.innerHTML = orig, 2000);
-  } catch(e) {
-    alert('Could not copy. Please select and copy manually.');
+    setTimeout(() => btn.innerHTML = orig, 2200);
+  } catch {
+    alert('Copy failed — select the text manually.');
   }
 }
+
 </script>
 </body>
 </html>
