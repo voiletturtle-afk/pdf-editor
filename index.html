@@ -615,13 +615,13 @@ function initOcr() {
 async function runOcr(file) {
   const out   = document.getElementById('output');
   const lang  = document.getElementById('ocrLang').value;
-  const scale = parseInt(document.getElementById('ocrScale').value);
+  const scale = parseInt(document.getElementById('ocrScale').value) || 3;
 
   out.innerHTML = `
     <div class="status s-info">
       ${I.warn}
       <div style="flex:1">
-        <strong>Running OCR…</strong>
+        <strong>Running OCR on PDF...</strong>
         <div class="prog-wrap"><div class="prog-bar" id="ocrBar"></div></div>
         <p class="prog-lbl" id="ocrLog">Loading PDF…</p>
       </div>
@@ -637,68 +637,92 @@ async function runOcr(file) {
   try {
     const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
     const n   = pdf.numPages;
-    setP(5, `PDF loaded — ${n} page(s). Starting OCR engine…`);
+    setP(10, `PDF loaded — ${n} page(s). Initializing OCR...`);
 
-    const worker = await Tesseract.createWorker(lang, 1);
-    const texts  = [];
+    // Better language handling for Thaana
+    let ocrLang = lang;
+    if (lang === 'div' || lang === 'div+eng') {
+      ocrLang = 'tha+eng';   // tha often works better than div
+    }
+
+    const worker = await Tesseract.createWorker(ocrLang, 1, {
+      logger: m => console.log(m)
+    });
+
+    const texts = [];
 
     for (let i = 1; i <= n; i++) {
-      setP(5 + ((i-1)/n)*88, `Rendering page ${i} of ${n}…`);
+      setP(10 + ((i-1)/n)*80, `Processing page ${i} of ${n}...`);
+
       const page = await pdf.getPage(i);
-      const vp   = page.getViewport({ scale });
+      const vp   = page.getViewport({ scale: scale });
       const cv   = document.createElement('canvas');
-      cv.width = vp.width; cv.height = vp.height;
+      cv.width = vp.width;
+      cv.height = vp.height;
       await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
 
-      setP(5 + ((i-.5)/n)*88, `Recognising text on page ${i} of ${n}…`);
-      const { data: { text } } = await worker.recognize(cv);
+      // Improved recognition settings
+      const { data: { text } } = await worker.recognize(cv, {
+        tessedit_pageseg_mode: '3',           // Fully automatic
+        preserve_interword_spaces: '1'
+      });
+
       texts.push({ page: i, text: text.trim() });
     }
 
     await worker.terminate();
-    setP(100, 'Done!');
+    setP(100, 'OCR Complete!');
 
-    const full  = texts.map(p => n > 1 ? `[Page ${p.page}]\n${p.text}` : p.text).join('\n\n' + '─'.repeat(40) + '\n\n');
-    const words = full.split(/\s+/).filter(Boolean).length;
-    const chars = full.length;
+    const fullText = texts.map(p => 
+      n > 1 ? `[Page ${p.page}]\n${p.text}` : p.text
+    ).join('\n\n' + '─'.repeat(50) + '\n\n');
 
-    const RTL = ['div','ara','heb','fas','urd'];
-    const rtl = RTL.some(l => lang === l || lang.startsWith(l+'+') || lang.endsWith('+'+l));
+    const isRTL = lang.includes('div') || lang.includes('ara');
 
-    window._ocrText     = full;
-    window._ocrFilename = file.name.replace(/\.pdf$/i,'') + '_ocr.txt';
+    window._ocrText = fullText;
+    window._ocrFilename = file.name.replace(/\.pdf$/i, '') + '_ocr.txt';
 
     out.innerHTML = `
-      ${status('success',`OCR complete — ${n} page(s) · ${words.toLocaleString()} words · ${chars.toLocaleString()} chars`)}
-      <textarea class="ocr-box" id="ocrText" spellcheck="false" dir="${rtl?'rtl':'ltr'}" style="text-align:${rtl?'right':'left'}">${esc(full)}</textarea>
-      <div class="btn-row">
-        <button class="btn btn-success" onclick="dlOcr()">${I.download} Download .txt</button>
-        <button class="btn btn-ghost"   onclick="cpOcr(this)">${I.copy} Copy to Clipboard</button>
+      ${status('success', `OCR finished — ${n} page(s) • ${fullText.split(/\s+/).filter(Boolean).length.toLocaleString()} words`)}
+      <textarea class="ocr-box" id="ocrText" spellcheck="false" 
+                dir="${isRTL ? 'rtl' : 'ltr'}" 
+                style="text-align:${isRTL ? 'right' : 'left'}; font-size:0.9rem; line-height:1.8;">
+${esc(fullText)}
+      </textarea>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-success" onclick="dlOcr()">${I.download} Download Text</button>
+        <button class="btn btn-ghost" onclick="cpOcr(this)">${I.copy} Copy Text</button>
       </div>`;
   } catch(err) {
-    out.innerHTML = status('error',`OCR failed: ${err.message}`);
     console.error(err);
+    out.innerHTML = status('error', `OCR Error: ${err.message}`);
   }
 }
 
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 function dlOcr() {
-  const t = document.getElementById('ocrText').value;
+  const text = window._ocrText || document.getElementById('ocrText')?.value;
+  if (!text) return alert("No text to download");
   const a = document.createElement('a');
-  a.href  = URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));
-  a.download = window._ocrFilename || 'ocr_output.txt';
+  a.href = URL.createObjectURL(new Blob([text], {type: 'text/plain;charset=utf-8'}));
+  a.download = window._ocrFilename || 'extracted_text.txt';
   a.click();
 }
 
 async function cpOcr(btn) {
-  const t = document.getElementById('ocrText').value;
+  const text = window._ocrText || document.getElementById('ocrText')?.value;
+  if (!text) return;
   try {
-    await navigator.clipboard.writeText(t);
+    await navigator.clipboard.writeText(text);
     const orig = btn.innerHTML;
     btn.innerHTML = I.check + ' Copied!';
-    setTimeout(() => btn.innerHTML = orig, 2200);
-  } catch { alert('Copy failed — select the text manually.'); }
+    setTimeout(() => btn.innerHTML = orig, 2000);
+  } catch(e) {
+    alert('Could not copy. Please select and copy manually.');
+  }
 }
 </script>
 </body>
