@@ -825,70 +825,94 @@ function cropWhitespace(src) {
 }
 
 function cleanDhivehiNoise(text) {
-    if (!text) return '';
+  if (!text) return '';
 
-    return text
-        // Fix common Thaana OCR mistakes
-        .replace(/ްް+/g, 'ް')           // Remove duplicate sukun
-        .replace(/[ް]+/g, 'ް')           // Normalize sukun
-        .replace(/[\u200B\u200C\u200D\uFEFF]/g, '') // Remove zero-width characters
-        .replace(/[\u00A0\u1680\u180E\u2000-\u200F\u202F\u205F\u3000]/g, ' ') // Normalize spaces
-        .replace(/[،؛؟]+/g, match => match[0])     // Remove duplicate punctuation
-        .replace(/(\s)\1+/g, '$1')                  // Remove duplicate spaces
-        .replace(/\n\s*\n\s*\n/g, '\n\n')           // Reduce excessive line breaks
-        // Common misrecognitions in Thaana
-        .replace(/އް/g, 'އް')   // Sometimes OCR breaks letters
-        .replace(/ށ/g, 'ށ')
-        .replace(/ތ/g, 'ތ')
-        .trim();
+  let t = String(text);
+
+  t = t
+    // remove invisible characters
+    .replace(/[\u200B\u200C\u200D\uFEFF]/g, '')
+
+    // normalize weird spaces
+    .replace(/[\u00A0\u1680\u180E\u2000-\u200F\u202F\u205F\u3000]/g, ' ')
+
+    // normalize repeated sukun/fili
+    .replace(/ް{2,}/g, 'ް')
+    .replace(/ަ{2,}/g, 'ަ')
+    .replace(/ާ{2,}/g, 'ާ')
+    .replace(/ި{2,}/g, 'ި')
+    .replace(/ީ{2,}/g, 'ީ')
+    .replace(/ު{2,}/g, 'ު')
+    .replace(/ޫ{2,}/g, 'ޫ')
+    .replace(/ެ{2,}/g, 'ެ')
+    .replace(/ޭ{2,}/g, 'ޭ')
+    .replace(/ޮ{2,}/g, 'ޮ')
+    .replace(/ޯ{2,}/g, 'ޯ')
+
+    // normalize spaces
+    .replace(/[ \t]+/g, ' ')
+
+    // remove spaces before punctuation
+    .replace(/\s+([،؛؟.,:;%])/g, '$1')
+
+    // reduce duplicate punctuation
+    .replace(/([،؛؟.,:;%])\1+/g, '$1');
+
+  // Remove OCR garbage lines, but keep real short headings
+  const lines = t.split('\n').map(line => line.trim());
+
+  const cleanedLines = lines.filter(line => {
+    if (!line) return true;
+
+    const chars = [...line];
+    const thaanaCount = (line.match(/[\u0780-\u07B1]/g) || []).length;
+    const filiCount = (line.match(/[\u07A6-\u07B0]/g) || []).length;
+    const digitCount = (line.match(/[0-9]/g) || []).length;
+    const spaceCount = (line.match(/\s/g) || []).length;
+
+    // remove lines like: "032303 0 3759"
+    if (digitCount >= 5 && thaanaCount < 3) return false;
+
+    // remove lines that are mostly scattered isolated OCR marks
+    const usefulCount = thaanaCount + filiCount + digitCount;
+    if (chars.length > 8 && usefulCount / chars.length < 0.45) return false;
+
+    // remove very noisy lines with too many spaces compared to text
+    if (chars.length > 12 && spaceCount > thaanaCount + filiCount) return false;
+
+    return true;
+  });
+
+  return cleanedLines
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
-function cleanOcrText(text, lang = 'thaa+eng') {
-    let t = String(text || '').trim();
+function cleanOcrText(text, lang = 'thaa') {
+  let t = String(text || '');
 
-    if (!t) return '';
+  if (!t.trim()) return '';
 
-    if (lang === 'eng' || lang === 'english') {
-        // English only - remove everything non-ASCII printable
-        t = t.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '');
-    } 
-    else if (lang === 'thaa' || lang === 'div') {
-        // Pure Thaana
-        t = t.replace(/[^\u0780-\u07BF0-9\s\t\n\r،؛؟.،:;%()\-–—\/]/g, '');
-        t = cleanDhivehiNoise(t);
-    } 
-    else {
-        // Default: thaa+eng (mixed)
-        t = t.replace(/[^\u0780-\u07BF\x09\x0A\x0D\x20-\x7E،؛؟.،:;%()\-–—\/]/g, '');
-        t = cleanDhivehiNoise(t);
-    }
-    // Final cleanup
+  if (lang === 'eng' || lang === 'english') {
     t = t
-        .replace(/\n{3,}/g, '\n\n')           // Max 2 line breaks
-        .replace(/[ \t]+/g, ' ')              // Normalize spaces
-        .replace(/ \n/g, '\n')                // Remove trailing spaces before newline
-        .trim();
+      .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
 
     return t;
-}
+  }
 
-function cleanDhivehiNoise(t) {
-  return t.split('\n').map(line => {
-    line = line.trim();
-    // Remove common OCR garbage: many isolated single Thaana marks/letters in one line.
-    line = line.replace(/(?:^|\s)[\u0780-\u07BF](?=\s|$)/g, ' ');
-    line = line.replace(/\s{2,}/g, ' ').trim();
-    return line;
-  }).filter(line => {
-    if (!line) return false;
-    const thaana = (line.match(/[\u0780-\u07BF]/g) || []).length;
-    const meaningful = (line.match(/[\u0780-\u07BF0-9]/g) || []).length;
-    // Drop tiny noisy lines but keep short headings/numbers.
-    if (meaningful < 3 && line.length < 10) return false;
-    // Drop lines that are mostly isolated noise after filtering.
-    if (line.length > 12 && thaana > 0 && thaana / line.length < 0.18) return false;
-    return true;
-  }).join('\n');
+  if (lang === 'thaa' || lang === 'div' || lang === 'thaana') {
+    // Keep Thaana letters, fili, numbers, common punctuation, spaces/newlines
+    t = t.replace(/[^\u0780-\u07B1\u07A6-\u07B00-9\s\t\n\r،؛؟.,:;%()\-–—\/]/g, '');
+    return cleanDhivehiNoise(t);
+  }
+
+  // Mixed Dhivehi + English
+  t = t.replace(/[^\u0780-\u07B1\u07A6-\u07B0A-Za-z0-9\x09\x0A\x0D .,،؛؟:;%()\-–—\/]/g, '');
+  return cleanDhivehiNoise(t);
 }
 
 function thaanaWhitelist(includeEnglish=false) {
