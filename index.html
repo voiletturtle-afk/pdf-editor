@@ -983,12 +983,87 @@ async function runOcr(file) {
     }, setP);
 
     const params = {
-      tessedit_pageseg_mode: psm,
-      preserve_interword_spaces: '1'
+      tessedit_pageseg_mode: '6',
+      user_defined_dpi: '300',
+      preserve_interword_spaces: '0'
     };
-    if (uiLang === 'thaa') params.tessedit_char_whitelist = thaanaWhitelist(false);
-    if (uiLang === 'thaa+eng') params.tessedit_char_whitelist = thaanaWhitelist(true);
+    if (uiLang === 'thaa') // params.tessedit_char_whitelist = thaanaWhitelist(false);
+    if (uiLang === 'thaa+eng') // params.tessedit_char_whitelist = thaanaWhitelist(true);
     await worker.setParameters(params);
+
+    function preprocessForThaana(sourceCanvas, scale = 5) {
+  const src = sourceCanvas;
+  const out = document.createElement('canvas');
+
+  out.width = Math.round(src.width * scale);
+  out.height = Math.round(src.height * scale);
+
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // white background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, out.width, out.height);
+
+  ctx.drawImage(src, 0, 0, out.width, out.height);
+
+  const img = ctx.getImageData(0, 0, out.width, out.height);
+  const d = img.data;
+
+  for (let i = 0; i < d.length; i += 4) {
+    // grayscale
+    let gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+
+    // gentle contrast, not harsh threshold
+    gray = (gray - 128) * 1.45 + 128;
+
+    // slightly darken text
+    gray = gray < 180 ? gray * 0.78 : gray;
+
+    gray = Math.max(0, Math.min(255, gray));
+
+    d[i] = gray;
+    d[i + 1] = gray;
+    d[i + 2] = gray;
+    d[i + 3] = 255;
+  }
+
+  ctx.putImageData(img, 0, 0);
+
+  return out;
+}
+
+    function cleanThaanaOcr(text) {
+  return String(text || '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => {
+      if (!line) return true;
+
+      const thaana = (line.match(/[\u0780-\u07B1]/g) || []).length;
+      const fili = (line.match(/[\u07A6-\u07B0]/g) || []).length;
+      const digits = (line.match(/[0-9]/g) || []).length;
+
+      // remove lines mostly made of fake numbers
+      if (digits >= 4 && thaana < 3) return false;
+
+      // remove tiny garbage lines
+      if (line.length < 4 && thaana < 2) return false;
+
+      return true;
+    })
+    .join('\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+ const cleanedText = uiLang === 'thaa'
+  ? cleanThaanaOcr(text)
+  : cleanOcrText(text, uiLang);
+   
 
     const parts = [];
     for (let i = 0; i < canvases.length; i++) {
