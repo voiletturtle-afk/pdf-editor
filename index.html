@@ -52,6 +52,23 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
+        .tool-card.new-feature {
+            border: 2px solid #667eea;
+            position: relative;
+        }
+        .tool-card.new-feature::after {
+            content: 'NEW';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #667eea;
+            color: white;
+            font-size: 0.65em;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
         .tool-card .icon {
             font-size: 3em;
             margin-bottom: 15px;
@@ -221,6 +238,65 @@
             border-radius: 8px;
             margin: 20px 0;
         }
+
+        /* ── OCR-specific styles ── */
+        .ocr-progress-wrap {
+            background: #edf2f7;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 12px 0;
+            height: 10px;
+        }
+        .ocr-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+        .ocr-log {
+            font-size: 0.85em;
+            color: #4a5568;
+            margin: 6px 0 14px;
+        }
+        .ocr-result-box {
+            width: 100%;
+            min-height: 280px;
+            padding: 16px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            resize: vertical;
+            background: #f7fafc;
+            color: #2d3748;
+            white-space: pre-wrap;
+        }
+        .ocr-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+        .ocr-lang-note {
+            font-size: 0.82em;
+            color: #718096;
+            margin-top: 6px;
+        }
+        .page-ocr-divider {
+            border: none;
+            border-top: 1px dashed #cbd5e0;
+            margin: 16px 0 8px;
+        }
+        .page-ocr-label {
+            font-size: 0.78em;
+            font-weight: 700;
+            color: #667eea;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -266,6 +342,13 @@
                 <h3>PDF Info</h3>
                 <p>View file details</p>
             </div>
+
+            <!-- NEW: OCR Tool -->
+            <div class="tool-card new-feature" onclick="openTool('ocr')">
+                <div class="icon">🔍</div>
+                <h3>PDF to Text (OCR)</h3>
+                <p>Extract text from scanned PDFs using optical character recognition</p>
+            </div>
         </div>
 
         <div class="workspace" id="workspace">
@@ -283,6 +366,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
     <script>
         // Configure PDF.js worker
         if (typeof pdfjsLib !== 'undefined') {
@@ -303,37 +388,19 @@
             workspace.scrollIntoView({ behavior: 'smooth' });
 
             const tools = {
-                convert: {
-                    title: '🖼️ PDF to Image Converter',
-                    content: getConvertHTML()
-                },
-                compress: {
-                    title: '🗜️ Compress PDF',
-                    content: getCompressHTML()
-                },
-                merge: {
-                    title: '📑 Merge PDFs',
-                    content: getMergeHTML()
-                },
-                split: {
-                    title: '✂️ Split PDF',
-                    content: getSplitHTML()
-                },
-                rotate: {
-                    title: '🔄 Rotate Pages',
-                    content: getRotateHTML()
-                },
-                info: {
-                    title: 'ℹ️ PDF Information',
-                    content: getInfoHTML()
-                }
+                convert: { title: '🖼️ PDF to Image Converter', content: getConvertHTML() },
+                compress: { title: '🗜️ Compress PDF', content: getCompressHTML() },
+                merge: { title: '📑 Merge PDFs', content: getMergeHTML() },
+                split: { title: '✂️ Split PDF', content: getSplitHTML() },
+                rotate: { title: '🔄 Rotate Pages', content: getRotateHTML() },
+                info: { title: 'ℹ️ PDF Information', content: getInfoHTML() },
+                ocr: { title: '🔍 PDF to Text (OCR)', content: getOcrHTML() }
             };
 
             const tool = tools[toolName];
             title.textContent = tool.title;
             content.innerHTML = tool.content;
 
-            // Initialize tool after content is loaded
             setTimeout(() => initializeTool(toolName), 100);
         }
 
@@ -343,6 +410,8 @@
             pdfFiles = [];
             selectedPages = [];
         }
+
+        // ── HTML templates ──────────────────────────────────────────
 
         function getConvertHTML() {
             return `
@@ -412,30 +481,62 @@
             `;
         }
 
+        function getOcrHTML() {
+            return `
+                <p style="color:#555; margin-bottom:16px;">
+                    Upload a PDF (scanned or text-based). Each page will be rendered and run through OCR to extract text.
+                    Works entirely in your browser — no data is uploaded anywhere.
+                </p>
+                <input type="file" id="pdfFile" accept=".pdf" class="file-input">
+                <div class="controls" style="margin-bottom:10px;">
+                    <label>Language:</label>
+                    <select id="ocrLang">
+                        <option value="eng">English</option>
+                        <optgroup label="── Dhivehi / Thaana ──">
+                            <option value="div">Dhivehi — ދިވެހި (div)</option>
+                            <option value="div+eng">Dhivehi + English (mixed)</option>
+                        </optgroup>
+                        <optgroup label="── Other languages ──">
+                            <option value="fra">French</option>
+                            <option value="deu">German</option>
+                            <option value="spa">Spanish</option>
+                            <option value="por">Portuguese</option>
+                            <option value="ita">Italian</option>
+                            <option value="ara">Arabic</option>
+                            <option value="chi_sim">Chinese (Simplified)</option>
+                            <option value="jpn">Japanese</option>
+                            <option value="kor">Korean</option>
+                            <option value="rus">Russian</option>
+                            <option value="hin">Hindi</option>
+                        </optgroup>
+                    </select>
+                    <label style="margin-left:8px;">Scale:</label>
+                    <select id="ocrScale">
+                        <option value="2">Standard (faster)</option>
+                        <option value="3">High quality (slower)</option>
+                    </select>
+                </div>
+                <p class="ocr-lang-note">💡 First OCR run downloads the language model (~10–20 MB). Subsequent runs use the cached model.<br>
+                🇲🇻 For Dhivehi PDFs, choose <strong>Dhivehi — ދިވެހި</strong>; for documents mixing Dhivehi and English choose <strong>Dhivehi + English</strong>. Thaana is a right-to-left script — extracted text will reflect this naturally.</p>
+                <div id="output" class="output"></div>
+            `;
+        }
+
+        // ── Tool initializers ────────────────────────────────────────
+
         function initializeTool(toolName) {
             switch(toolName) {
-                case 'convert':
-                    initConvert();
-                    break;
-                case 'compress':
-                    initCompress();
-                    break;
-                case 'merge':
-                    initMerge();
-                    break;
-                case 'split':
-                    initSplit();
-                    break;
-                case 'rotate':
-                    initRotate();
-                    break;
-                case 'info':
-                    initInfo();
-                    break;
+                case 'convert':  initConvert();  break;
+                case 'compress': initCompress(); break;
+                case 'merge':    initMerge();    break;
+                case 'split':    initSplit();    break;
+                case 'rotate':   initRotate();   break;
+                case 'info':     initInfo();     break;
+                case 'ocr':      initOcr();      break;
             }
         }
 
-        // PDF to Image Converter
+        // PDF to Image
         async function initConvert() {
             const fileInput = document.getElementById('pdfFile');
             const qualitySlider = document.getElementById('quality');
@@ -454,7 +555,7 @@
 
                 try {
                     const arrayBuffer = await file.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                     const format = document.getElementById('imageFormat').value;
                     const quality = parseInt(qualitySlider.value) / 100;
 
@@ -503,11 +604,7 @@
                 try {
                     const arrayBuffer = await file.arrayBuffer();
                     const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-
-                    const pdfBytes = await pdfDoc.save({
-                        useObjectStreams: true
-                    });
-
+                    const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
                     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                     const url = URL.createObjectURL(blob);
 
@@ -522,9 +619,7 @@
                             <p>Compressed Size: ${compressedSize} KB</p>
                             <p>Space Saved: ${savings}%</p>
                         </div>
-                        <a href="${url}" download="compressed.pdf" class="btn btn-success">
-                            Download Compressed PDF
-                        </a>
+                        <a href="${url}" download="compressed.pdf" class="btn btn-success">Download Compressed PDF</a>
                     `;
                 } catch (error) {
                     output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
@@ -577,9 +672,7 @@
                         <div class="status success">
                             <p style="font-weight:600;">✓ Successfully merged ${pdfFiles.length} PDFs!</p>
                         </div>
-                        <a href="${url}" download="merged.pdf" class="btn btn-success">
-                            Download Merged PDF
-                        </a>
+                        <a href="${url}" download="merged.pdf" class="btn btn-success">Download Merged PDF</a>
                     `;
                 } catch (error) {
                     output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
@@ -610,8 +703,6 @@
                     }
                     pageList.innerHTML = html;
                     pageSelector.style.display = 'block';
-
-                    // Store PDF for later use
                     window.currentPdfDoc = pdfDoc;
                 } catch (error) {
                     document.getElementById('output').innerHTML = `<div class="status error">Error: ${error.message}</div>`;
@@ -640,9 +731,7 @@
                         <div class="status success">
                             <p style="font-weight:600;">✓ Extracted ${selectedPages.length} pages!</p>
                         </div>
-                        <a href="${url}" download="extracted.pdf" class="btn btn-success">
-                            Download Extracted PDF
-                        </a>
+                        <a href="${url}" download="extracted.pdf" class="btn btn-success">Download Extracted PDF</a>
                     `;
                 } catch (error) {
                     output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
@@ -668,10 +757,7 @@
 
             rotateBtn.addEventListener('click', async () => {
                 const file = fileInput.files[0];
-                if (!file) {
-                    alert('Please select a PDF file first');
-                    return;
-                }
+                if (!file) { alert('Please select a PDF file first'); return; }
 
                 const output = document.getElementById('output');
                 output.innerHTML = '<div class="status info">Rotating pages...</div>';
@@ -680,11 +766,7 @@
                     const rotation = parseInt(document.getElementById('rotation').value);
                     const arrayBuffer = await file.arrayBuffer();
                     const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                    const pages = pdfDoc.getPages();
-
-                    pages.forEach(page => {
-                        page.setRotation(PDFLib.degrees(rotation));
-                    });
+                    pdfDoc.getPages().forEach(page => page.setRotation(PDFLib.degrees(rotation)));
 
                     const pdfBytes = await pdfDoc.save();
                     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -694,9 +776,7 @@
                         <div class="status success">
                             <p style="font-weight:600;">✓ Pages rotated ${rotation}°!</p>
                         </div>
-                        <a href="${url}" download="rotated.pdf" class="btn btn-success">
-                            Download Rotated PDF
-                        </a>
+                        <a href="${url}" download="rotated.pdf" class="btn btn-success">Download Rotated PDF</a>
                     `;
                 } catch (error) {
                     output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
@@ -721,25 +801,158 @@
                     const numPages = pdfDoc.getPageCount();
                     const fileSize = (file.size / 1024).toFixed(2);
 
-                    const title = pdfDoc.getTitle() || 'N/A';
-                    const author = pdfDoc.getAuthor() || 'N/A';
-                    const subject = pdfDoc.getSubject() || 'N/A';
-
                     output.innerHTML = `
                         <div class="status success">
                             <h3 style="margin-bottom:15px; font-size:1.2em;">📄 PDF Information</h3>
                             <p><strong>Filename:</strong> ${file.name}</p>
                             <p><strong>File Size:</strong> ${fileSize} KB</p>
                             <p><strong>Number of Pages:</strong> ${numPages}</p>
-                            <p><strong>Title:</strong> ${title}</p>
-                            <p><strong>Author:</strong> ${author}</p>
-                            <p><strong>Subject:</strong> ${subject}</p>
+                            <p><strong>Title:</strong> ${pdfDoc.getTitle() || 'N/A'}</p>
+                            <p><strong>Author:</strong> ${pdfDoc.getAuthor() || 'N/A'}</p>
+                            <p><strong>Subject:</strong> ${pdfDoc.getSubject() || 'N/A'}</p>
                         </div>
                     `;
                 } catch (error) {
                     output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
                 }
             });
+        }
+
+        // ── OCR Tool ─────────────────────────────────────────────────
+
+        function initOcr() {
+            const fileInput = document.getElementById('pdfFile');
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                await runOcr(file);
+            });
+        }
+
+        async function runOcr(file) {
+            const output = document.getElementById('output');
+            const lang = document.getElementById('ocrLang').value;
+            const scale = parseInt(document.getElementById('ocrScale').value);
+
+            output.innerHTML = `
+                <div class="status info" id="ocrStatus">
+                    <strong>⏳ Starting OCR…</strong>
+                    <div class="ocr-progress-wrap" style="margin-top:10px;">
+                        <div class="ocr-progress-bar" id="ocrBar"></div>
+                    </div>
+                    <p class="ocr-log" id="ocrLog">Loading PDF…</p>
+                </div>
+            `;
+
+            const bar  = document.getElementById('ocrBar');
+            const log  = document.getElementById('ocrLog');
+
+            function setProgress(pct, msg) {
+                bar.style.width = pct + '%';
+                log.textContent = msg;
+            }
+
+            try {
+                // 1. Load PDF with pdf.js
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const numPages = pdf.numPages;
+
+                setProgress(5, `PDF loaded — ${numPages} page(s) found. Initialising OCR engine…`);
+
+                // 2. Create Tesseract worker (lang data downloaded automatically on first run)
+                const worker = await Tesseract.createWorker(lang, 1);
+
+                const pageTexts = [];
+
+                // 3. Render each page → canvas → OCR
+                for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                    const pageProgress = 5 + ((pageNum - 1) / numPages) * 90;
+                    setProgress(pageProgress, `Rendering page ${pageNum} of ${numPages}…`);
+
+                    const page     = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale });
+                    const canvas   = document.createElement('canvas');
+                    canvas.width   = viewport.width;
+                    canvas.height  = viewport.height;
+                    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+                    setProgress(pageProgress + (45 / numPages), `Running OCR on page ${pageNum} of ${numPages}…`);
+
+                    const { data: { text } } = await worker.recognize(canvas);
+                    pageTexts.push({ page: pageNum, text: text.trim() });
+                }
+
+                await worker.terminate();
+
+                setProgress(100, 'Done!');
+
+                // 4. Assemble full text
+                const fullText = pageTexts.map(p =>
+                    numPages > 1
+                        ? `[Page ${p.page}]\n${p.text}`
+                        : p.text
+                ).join('\n\n' + '─'.repeat(40) + '\n\n');
+
+                const wordCount = fullText.split(/\s+/).filter(Boolean).length;
+                const charCount = fullText.length;
+
+                // 5. Render result UI
+                const rtlLangs = ['div', 'ara', 'heb', 'fas', 'urd'];
+                const isRtl = rtlLangs.some(l => lang === l || lang.startsWith(l + '+') || lang.endsWith('+' + l));
+                output.innerHTML = `
+                    <div class="status success" style="margin-bottom:16px;">
+                        <strong>✓ OCR Complete</strong> —
+                        ${numPages} page(s) · ${wordCount.toLocaleString()} words · ${charCount.toLocaleString()} characters
+                    </div>
+                    <textarea class="ocr-result-box" id="ocrText" spellcheck="false"
+                        dir="${isRtl ? 'rtl' : 'ltr'}"
+                        style="text-align:${isRtl ? 'right' : 'left'}"
+                    >${escapeHtml(fullText)}</textarea>
+                    <div class="ocr-actions">
+                        <button class="btn btn-success" onclick="downloadOcrText()">⬇ Download .txt</button>
+                        <button class="btn btn-primary" onclick="copyOcrText(this)">📋 Copy to Clipboard</button>
+                    </div>
+                `;
+
+                // Store text for download/copy
+                window._ocrText    = fullText;
+                window._ocrFilename = file.name.replace(/\.pdf$/i, '') + '_ocr.txt';
+
+            } catch (err) {
+                output.innerHTML = `<div class="status error"><strong>OCR failed:</strong> ${err.message}</div>`;
+                console.error(err);
+            }
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function downloadOcrText() {
+            const text = document.getElementById('ocrText').value;
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = window._ocrFilename || 'ocr_output.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function copyOcrText(btn) {
+            const text = document.getElementById('ocrText').value;
+            try {
+                await navigator.clipboard.writeText(text);
+                const orig = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => btn.textContent = orig, 2000);
+            } catch {
+                alert('Copy failed — please select the text manually.');
+            }
         }
     </script>
 </body>
