@@ -1,959 +1,705 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Toolkit - Free Online PDF Editor</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-        .header h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-        .tools-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-        .tool-card {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-        .tool-card.new-feature {
-            border: 2px solid #667eea;
-            position: relative;
-        }
-        .tool-card.new-feature::after {
-            content: 'NEW';
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: #667eea;
-            color: white;
-            font-size: 0.65em;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            padding: 3px 8px;
-            border-radius: 20px;
-        }
-        .tool-card .icon {
-            font-size: 3em;
-            margin-bottom: 15px;
-        }
-        .tool-card h3 {
-            font-size: 1.5em;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        .tool-card p {
-            color: #666;
-            font-size: 0.95em;
-        }
-        .workspace {
-            display: none;
-            background: white;
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        .workspace.active {
-            display: block;
-        }
-        .workspace-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #eee;
-        }
-        .workspace-header h2 {
-            font-size: 2em;
-            color: #333;
-        }
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 600;
-        }
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #5568d3;
-        }
-        .btn-success {
-            background: #48bb78;
-            color: white;
-        }
-        .btn-success:hover {
-            background: #38a169;
-        }
-        .btn-secondary {
-            background: #718096;
-            color: white;
-        }
-        .btn-secondary:hover {
-            background: #4a5568;
-        }
-        .file-input {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 2px dashed #cbd5e0;
-            border-radius: 8px;
-            cursor: pointer;
-            background: #f7fafc;
-            transition: all 0.2s;
-        }
-        .file-input:hover {
-            border-color: #667eea;
-            background: #edf2f7;
-        }
-        .output {
-            margin-top: 20px;
-        }
-        .preview-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .preview-item {
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-        }
-        .preview-item img {
-            max-width: 100%;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .controls label {
-            font-weight: 600;
-            color: #333;
-        }
-        .controls input,
-        .controls select {
-            padding: 8px 12px;
-            border: 1px solid #cbd5e0;
-            border-radius: 6px;
-            font-size: 1em;
-        }
-        .status {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .status.success {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-        .status.error {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-        .status.info {
-            background: #bee3f8;
-            color: #2c5282;
-        }
-        .footer {
-            text-align: center;
-            color: white;
-            margin-top: 40px;
-            opacity: 0.9;
-        }
-        .page-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 10px;
-            margin: 20px 0;
-        }
-        .page-btn {
-            padding: 10px;
-            border: 2px solid #cbd5e0;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .page-btn:hover {
-            border-color: #667eea;
-        }
-        .page-btn.selected {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-        canvas {
-            max-width: 100%;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDFKit — Free In-Browser PDF Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #f0f4f8;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --border-md: #cbd5e1;
+      --navy:      #0f172a;
+      --accent:    #4f46e5;
+      --accent-lt: #eef2ff;
+      --accent-dk: #3730a3;
+      --green:     #059669;
+      --green-lt:  #d1fae5;
+      --red:       #dc2626;
+      --red-lt:    #fee2e2;
+      --text:      #0f172a;
+      --muted:     #64748b;
+      --faint:     #94a3b8;
+      --radius:    12px;
+      --radius-lg: 18px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+      --shadow:    0 4px 16px rgba(0,0,0,.10);
+      --shadow-lg: 0 20px 50px rgba(0,0,0,.18);
+      --font:      'Plus Jakarta Sans', system-ui, sans-serif;
+      --mono:      'JetBrains Mono', 'Courier New', monospace;
+      --t:         200ms cubic-bezier(.4,0,.2,1);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
 
-        /* ── OCR-specific styles ── */
-        .ocr-progress-wrap {
-            background: #edf2f7;
-            border-radius: 8px;
-            overflow: hidden;
-            margin: 12px 0;
-            height: 10px;
-        }
-        .ocr-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            width: 0%;
-            transition: width 0.3s ease;
-            border-radius: 8px;
-        }
-        .ocr-log {
-            font-size: 0.85em;
-            color: #4a5568;
-            margin: 6px 0 14px;
-        }
-        .ocr-result-box {
-            width: 100%;
-            min-height: 280px;
-            padding: 16px;
-            border: 1px solid #cbd5e0;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            line-height: 1.6;
-            resize: vertical;
-            background: #f7fafc;
-            color: #2d3748;
-            white-space: pre-wrap;
-        }
-        .ocr-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 14px;
-        }
-        .ocr-lang-note {
-            font-size: 0.82em;
-            color: #718096;
-            margin-top: 6px;
-        }
-        .page-ocr-divider {
-            border: none;
-            border-top: 1px dashed #cbd5e0;
-            margin: 16px 0 8px;
-        }
-        .page-ocr-label {
-            font-size: 0.78em;
-            font-weight: 700;
-            color: #667eea;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 4px;
-        }
-    </style>
+    /* NAVBAR */
+    .navbar {
+      background: var(--navy); padding: 0 clamp(16px,4vw,48px);
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 1px 0 rgba(255,255,255,.07);
+    }
+    .nb-brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff; font-weight:800; font-size:1.1rem; letter-spacing:-.02em; }
+    .nb-logo { width:32px; height:32px; background:var(--accent); border-radius:8px; display:grid; place-items:center; }
+    .nb-logo svg { width:17px; height:17px; stroke:#fff; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+    .nb-badge { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:4px 12px; font-size:.73rem; color:#a5f3fc; font-weight:700; letter-spacing:.04em; }
+    .nb-badge svg { width:11px; height:11px; stroke:#a5f3fc; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+
+    /* HERO */
+    .hero { background:var(--navy); padding:clamp(40px,6vw,72px) clamp(16px,4vw,48px) clamp(52px,8vw,96px); text-align:center; position:relative; overflow:hidden; }
+    .hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 70% 70% at 50% 130%, rgba(79,70,229,.32) 0%, transparent 65%); pointer-events:none; }
+    .hero-pill { display:inline-flex; align-items:center; gap:6px; background:rgba(79,70,229,.22); border:1px solid rgba(99,102,241,.35); border-radius:20px; padding:4px 14px; font-size:.73rem; font-weight:700; color:#a5b4fc; letter-spacing:.08em; text-transform:uppercase; margin-bottom:22px; }
+    .hero h1 { font-size:clamp(1.9rem,5vw,3.2rem); font-weight:800; color:#fff; letter-spacing:-.03em; line-height:1.15; margin-bottom:14px; }
+    .hero h1 em { color:#818cf8; font-style:normal; }
+    .hero p { font-size:clamp(.9rem,2vw,1.1rem); color:#94a3b8; max-width:520px; margin:0 auto; }
+
+    /* MAIN */
+    .main { max-width:1140px; margin:0 auto; padding:clamp(28px,5vw,56px) clamp(16px,4vw,28px) 72px; }
+    .section-label { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin-bottom:18px; }
+
+    /* TOOL GRID */
+    .tool-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+    .tool-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px 20px; cursor:pointer; transition:transform var(--t),box-shadow var(--t),border-color var(--t); position:relative; display:flex; flex-direction:column; gap:12px; box-shadow:var(--shadow-sm); }
+    .tool-card:hover { transform:translateY(-3px); box-shadow:var(--shadow); border-color:var(--accent); }
+    .tool-card:active { transform:translateY(0); }
+    .tool-card.is-new { border-color:#a5b4fc; }
+    .tool-card.is-new::after { content:'NEW'; position:absolute; top:13px; right:13px; background:var(--accent); color:#fff; font-size:.58rem; font-weight:800; letter-spacing:.1em; padding:2px 8px; border-radius:20px; }
+    .card-icon { width:42px; height:42px; border-radius:10px; background:var(--accent-lt); display:grid; place-items:center; flex-shrink:0; }
+    .card-icon svg { width:21px; height:21px; stroke:var(--accent); stroke-width:1.75; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .card-body h3 { font-size:.95rem; font-weight:700; color:var(--text); margin-bottom:3px; }
+    .card-body p { font-size:.79rem; color:var(--muted); line-height:1.5; }
+
+    /* MODAL */
+    .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(15,23,42,.6); backdrop-filter:blur(5px); z-index:200; align-items:center; justify-content:center; padding:16px; }
+    .modal-backdrop.open { display:flex; animation:fadeIn 180ms ease; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes slideUp { from{opacity:0;transform:translateY(22px) scale(.985)} to{opacity:1;transform:none} }
+    .modal { background:var(--surface); border-radius:var(--radius-lg); width:100%; max-width:700px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-lg); animation:slideUp 230ms cubic-bezier(.34,1.25,.64,1); }
+    .modal-head { display:flex; align-items:center; gap:13px; padding:20px 22px 17px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); z-index:10; }
+    .mh-icon { width:36px; height:36px; border-radius:9px; background:var(--accent-lt); display:grid; place-items:center; flex-shrink:0; }
+    .mh-icon svg { width:19px; height:19px; stroke:var(--accent); stroke-width:1.9; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .modal-title { font-size:1.05rem; font-weight:700; flex:1; }
+    .modal-x { width:30px; height:30px; border:none; background:var(--bg); border-radius:7px; cursor:pointer; display:grid; place-items:center; color:var(--muted); transition:background var(--t),color var(--t); }
+    .modal-x:hover { background:var(--border); color:var(--text); }
+    .modal-x svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2.5; stroke-linecap:round; }
+    .modal-body { padding:22px; }
+
+    /* DROP ZONE */
+    .drop-zone { border:2px dashed var(--border-md); border-radius:var(--radius); padding:32px 20px; text-align:center; cursor:pointer; transition:border-color var(--t),background var(--t); background:var(--bg); position:relative; margin-bottom:18px; }
+    .drop-zone:hover, .drop-zone.dragover { border-color:var(--accent); background:var(--accent-lt); }
+    .drop-zone input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+    .dz-icon { width:46px; height:46px; background:#e0e7ff; border-radius:12px; display:grid; place-items:center; margin:0 auto 12px; }
+    .dz-icon svg { width:23px; height:23px; stroke:var(--accent); fill:none; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; }
+    .drop-zone strong { display:block; font-size:.92rem; font-weight:700; color:var(--text); margin-bottom:3px; }
+    .drop-zone span { font-size:.78rem; color:var(--muted); }
+    .file-chosen { display:none; align-items:center; justify-content:center; gap:7px; font-size:.85rem; font-weight:600; color:var(--accent); margin-top:10px; }
+
+    /* CONTROLS */
+    .ctrl-row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px; }
+    .ctrl-grp { display:flex; flex-direction:column; gap:5px; }
+    .ctrl-grp label { font-size:.7rem; font-weight:700; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+    .ctrl-grp select, .ctrl-grp input[type="range"] { padding:8px 12px; border:1px solid var(--border-md); border-radius:8px; font-size:.88rem; font-family:var(--font); color:var(--text); background:var(--surface); outline:none; transition:border-color var(--t); }
+    .ctrl-grp select:focus, .ctrl-grp input:focus { border-color:var(--accent); }
+    .ctrl-grp input[type="range"] { padding:3px 0; width:130px; accent-color:var(--accent); cursor:pointer; }
+    .ctrl-val { font-size:.8rem; font-weight:700; color:var(--accent); padding-bottom:2px; }
+
+    /* BUTTONS */
+    .btn { display:inline-flex; align-items:center; gap:7px; padding:10px 18px; border:none; border-radius:8px; font-size:.85rem; font-weight:700; font-family:var(--font); cursor:pointer; transition:all var(--t); text-decoration:none; white-space:nowrap; }
+    .btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+    .btn-primary { background:var(--accent); color:#fff; }
+    .btn-primary:hover { background:var(--accent-dk); }
+    .btn-success { background:var(--green); color:#fff; }
+    .btn-success:hover { background:#047857; }
+    .btn-ghost { background:var(--bg); color:var(--text); border:1px solid var(--border-md); }
+    .btn-ghost:hover { background:var(--border); }
+    .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+
+    /* STATUS */
+    .status { display:flex; align-items:flex-start; gap:11px; padding:13px 15px; border-radius:var(--radius); font-size:.85rem; line-height:1.5; margin-bottom:14px; }
+    .status svg { width:17px; height:17px; fill:none; stroke-width:2; flex-shrink:0; margin-top:1px; stroke-linecap:round; stroke-linejoin:round; }
+    .s-info    { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
+    .s-info svg { stroke:#3b82f6; }
+    .s-success { background:var(--green-lt); color:#065f46; border:1px solid #6ee7b7; }
+    .s-success svg { stroke:var(--green); }
+    .s-error   { background:var(--red-lt); color:#991b1b; border:1px solid #fca5a5; }
+    .s-error svg { stroke:var(--red); }
+
+    /* SPINNER */
+    .spin-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; padding:36px 20px; color:var(--muted); font-size:.85rem; }
+    .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .65s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* PROGRESS */
+    .prog-wrap { background:var(--border); border-radius:6px; height:5px; overflow:hidden; margin:9px 0 5px; }
+    .prog-bar { height:100%; background:linear-gradient(90deg,var(--accent),#818cf8); width:0%; transition:width .28s ease; border-radius:6px; }
+    .prog-lbl { font-size:.75rem; color:var(--muted); }
+
+    /* FILE LIST */
+    .file-list { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+    .file-item { display:flex; align-items:center; gap:9px; padding:9px 13px; background:var(--bg); border:1px solid var(--border); border-radius:8px; font-size:.82rem; font-weight:500; }
+    .file-item svg { width:14px; height:14px; stroke:var(--accent); fill:none; flex-shrink:0; stroke-linecap:round; stroke-linejoin:round; }
+    .file-num { font-size:.68rem; font-weight:700; color:var(--muted); background:var(--border); border-radius:4px; padding:1px 5px; }
+
+    /* PAGE GRID */
+    .page-grid { display:flex; flex-wrap:wrap; gap:7px; margin:12px 0; }
+    .page-btn { width:38px; height:38px; border:1.5px solid var(--border-md); background:var(--surface); border-radius:7px; font-size:.8rem; font-weight:700; cursor:pointer; transition:all var(--t); color:var(--muted); font-family:var(--font); }
+    .page-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .page-btn.selected { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+    /* PREVIEW */
+    .preview-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:12px; margin-top:14px; }
+    .preview-card { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--surface); box-shadow:var(--shadow-sm); }
+    .preview-card img { width:100%; display:block; }
+    .preview-foot { padding:9px; display:flex; justify-content:center; }
+
+    /* OCR BOX */
+    .ocr-box { width:100%; min-height:240px; padding:15px; border:1px solid var(--border-md); border-radius:var(--radius); font-family:var(--mono); font-size:.82rem; line-height:1.75; resize:vertical; background:#fafafa; color:var(--text); outline:none; transition:border-color var(--t); }
+    .ocr-box:focus { border-color:var(--accent); }
+
+    /* INFO */
+    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    @media(max-width:480px){ .info-grid{grid-template-columns:1fr} }
+    .info-item { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:11px 13px; }
+    .info-item dt { font-size:.68rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:2px; }
+    .info-item dd { font-size:.88rem; font-weight:600; word-break:break-all; }
+
+    /* FOOTER */
+    .footer { text-align:center; padding:22px 16px; font-size:.75rem; color:var(--faint); border-top:1px solid var(--border); }
+
+    @media(max-width:600px){
+      .modal-body { padding:16px; }
+      .ctrl-row { gap:10px; }
+      .tool-grid { grid-template-columns:1fr 1fr; }
+    }
+    @media(max-width:380px){ .tool-grid { grid-template-columns:1fr; } }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📄 PDF Toolkit</h1>
-            <p>Free online PDF editor - All processing happens in your browser</p>
-        </div>
 
-        <div class="tools-grid" id="toolsGrid">
-            <div class="tool-card" onclick="openTool('convert')">
-                <div class="icon">🖼️</div>
-                <h3>PDF to Image</h3>
-                <p>Convert PDF pages to JPEG/PNG</p>
-            </div>
-
-            <div class="tool-card" onclick="openTool('compress')">
-                <div class="icon">🗜️</div>
-                <h3>Compress PDF</h3>
-                <p>Reduce file size</p>
-            </div>
-
-            <div class="tool-card" onclick="openTool('merge')">
-                <div class="icon">📑</div>
-                <h3>Merge PDFs</h3>
-                <p>Combine multiple files</p>
-            </div>
-
-            <div class="tool-card" onclick="openTool('split')">
-                <div class="icon">✂️</div>
-                <h3>Split PDF</h3>
-                <p>Extract specific pages</p>
-            </div>
-
-            <div class="tool-card" onclick="openTool('rotate')">
-                <div class="icon">🔄</div>
-                <h3>Rotate Pages</h3>
-                <p>Rotate PDF pages</p>
-            </div>
-
-            <div class="tool-card" onclick="openTool('info')">
-                <div class="icon">ℹ️</div>
-                <h3>PDF Info</h3>
-                <p>View file details</p>
-            </div>
-
-            <!-- NEW: OCR Tool -->
-            <div class="tool-card new-feature" onclick="openTool('ocr')">
-                <div class="icon">🔍</div>
-                <h3>PDF to Text (OCR)</h3>
-                <p>Extract text from scanned PDFs using optical character recognition</p>
-            </div>
-        </div>
-
-        <div class="workspace" id="workspace">
-            <div class="workspace-header">
-                <h2 id="workspaceTitle">Tool</h2>
-                <button class="btn btn-secondary" onclick="closeWorkspace()">✕ Close</button>
-            </div>
-            <div id="workspaceContent"></div>
-        </div>
-
-        <div class="footer">
-            <p>🔒 All processing happens locally in your browser. Your files never leave your device.</p>
-        </div>
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a class="nb-brand" href="#">
+    <div class="nb-logo">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <!-- Tesseract.js for OCR -->
-    <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script>
-        // Configure PDF.js worker
-        if (typeof pdfjsLib !== 'undefined') {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        }
-
-        let currentTool = null;
-        let pdfFiles = [];
-        let selectedPages = [];
-
-        function openTool(toolName) {
-            currentTool = toolName;
-            const workspace = document.getElementById('workspace');
-            const title = document.getElementById('workspaceTitle');
-            const content = document.getElementById('workspaceContent');
-
-            workspace.classList.add('active');
-            workspace.scrollIntoView({ behavior: 'smooth' });
-
-            const tools = {
-                convert: { title: '🖼️ PDF to Image Converter', content: getConvertHTML() },
-                compress: { title: '🗜️ Compress PDF', content: getCompressHTML() },
-                merge: { title: '📑 Merge PDFs', content: getMergeHTML() },
-                split: { title: '✂️ Split PDF', content: getSplitHTML() },
-                rotate: { title: '🔄 Rotate Pages', content: getRotateHTML() },
-                info: { title: 'ℹ️ PDF Information', content: getInfoHTML() },
-                ocr: { title: '🔍 PDF to Text (OCR)', content: getOcrHTML() }
-            };
-
-            const tool = tools[toolName];
-            title.textContent = tool.title;
-            content.innerHTML = tool.content;
-
-            setTimeout(() => initializeTool(toolName), 100);
-        }
-
-        function closeWorkspace() {
-            document.getElementById('workspace').classList.remove('active');
-            currentTool = null;
-            pdfFiles = [];
-            selectedPages = [];
-        }
-
-        // ── HTML templates ──────────────────────────────────────────
-
-        function getConvertHTML() {
-            return `
-                <input type="file" id="pdfFile" accept=".pdf" class="file-input">
-                <div class="controls">
-                    <label>Format:</label>
-                    <select id="imageFormat">
-                        <option value="png">PNG</option>
-                        <option value="jpeg">JPEG</option>
-                    </select>
-                    <label>Quality:</label>
-                    <input type="range" id="quality" min="10" max="100" value="90">
-                    <span id="qualityValue">90%</span>
-                </div>
-                <div id="output" class="output"></div>
-            `;
-        }
-
-        function getCompressHTML() {
-            return `
-                <input type="file" id="pdfFile" accept=".pdf" class="file-input">
-                <div id="output" class="output"></div>
-            `;
-        }
-
-        function getMergeHTML() {
-            return `
-                <input type="file" id="pdfFiles" accept=".pdf" multiple class="file-input">
-                <div id="fileList"></div>
-                <button id="mergeBtn" class="btn btn-success" style="display:none;">Merge Files</button>
-                <div id="output" class="output"></div>
-            `;
-        }
-
-        function getSplitHTML() {
-            return `
-                <input type="file" id="pdfFile" accept=".pdf" class="file-input">
-                <div id="pageSelector" style="display:none;">
-                    <p style="margin-bottom: 10px; font-weight: 600;">Select pages to extract:</p>
-                    <div id="pageList" class="page-selector"></div>
-                    <button id="extractBtn" class="btn btn-success">Extract Selected Pages</button>
-                </div>
-                <div id="output" class="output"></div>
-            `;
-        }
-
-        function getRotateHTML() {
-            return `
-                <input type="file" id="pdfFile" accept=".pdf" class="file-input">
-                <div class="controls">
-                    <label>Rotation:</label>
-                    <select id="rotation">
-                        <option value="90">90° Clockwise</option>
-                        <option value="180">180°</option>
-                        <option value="270">270° Clockwise</option>
-                    </select>
-                    <button id="rotateBtn" class="btn btn-primary">Rotate All Pages</button>
-                </div>
-                <div id="output" class="output"></div>
-            `;
-        }
-
-        function getInfoHTML() {
-            return `
-                <input type="file" id="pdfFile" accept=".pdf" class="file-input">
-                <div id="output" class="output"></div>
-            `;
-        }
-
-        function getOcrHTML() {
-            return `
-                <p style="color:#555; margin-bottom:16px;">
-                    Upload a PDF (scanned or text-based). Each page will be rendered and run through OCR to extract text.
-                    Works entirely in your browser — no data is uploaded anywhere.
-                </p>
-                <input type="file" id="pdfFile" accept=".pdf" class="file-input">
-                <div class="controls" style="margin-bottom:10px;">
-                    <label>Language:</label>
-                    <select id="ocrLang">
-                        <option value="eng">English</option>
-                        <optgroup label="── Dhivehi / Thaana ──">
-                            <option value="div">Dhivehi — ދިވެހި (div)</option>
-                            <option value="div+eng">Dhivehi + English (mixed)</option>
-                        </optgroup>
-                        <optgroup label="── Other languages ──">
-                            <option value="fra">French</option>
-                            <option value="deu">German</option>
-                            <option value="spa">Spanish</option>
-                            <option value="por">Portuguese</option>
-                            <option value="ita">Italian</option>
-                            <option value="ara">Arabic</option>
-                            <option value="chi_sim">Chinese (Simplified)</option>
-                            <option value="jpn">Japanese</option>
-                            <option value="kor">Korean</option>
-                            <option value="rus">Russian</option>
-                            <option value="hin">Hindi</option>
-                        </optgroup>
-                    </select>
-                    <label style="margin-left:8px;">Scale:</label>
-                    <select id="ocrScale">
-                        <option value="2">Standard (faster)</option>
-                        <option value="3">High quality (slower)</option>
-                    </select>
-                </div>
-                <p class="ocr-lang-note">💡 First OCR run downloads the language model (~10–20 MB). Subsequent runs use the cached model.<br>
-                🇲🇻 For Dhivehi PDFs, choose <strong>Dhivehi — ދިވެހި</strong>; for documents mixing Dhivehi and English choose <strong>Dhivehi + English</strong>. Thaana is a right-to-left script — extracted text will reflect this naturally.</p>
-                <div id="output" class="output"></div>
-            `;
-        }
-
-        // ── Tool initializers ────────────────────────────────────────
-
-        function initializeTool(toolName) {
-            switch(toolName) {
-                case 'convert':  initConvert();  break;
-                case 'compress': initCompress(); break;
-                case 'merge':    initMerge();    break;
-                case 'split':    initSplit();    break;
-                case 'rotate':   initRotate();   break;
-                case 'info':     initInfo();     break;
-                case 'ocr':      initOcr();      break;
-            }
-        }
-
-        // PDF to Image
-        async function initConvert() {
-            const fileInput = document.getElementById('pdfFile');
-            const qualitySlider = document.getElementById('quality');
-            const qualityValue = document.getElementById('qualityValue');
-
-            qualitySlider.addEventListener('input', (e) => {
-                qualityValue.textContent = e.target.value + '%';
-            });
-
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const output = document.getElementById('output');
-                output.innerHTML = '<div class="status info">Converting PDF to images...</div>';
-
-                try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                    const format = document.getElementById('imageFormat').value;
-                    const quality = parseInt(qualitySlider.value) / 100;
-
-                    let html = '<div class="preview-grid">';
-
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const viewport = page.getViewport({ scale: 2 });
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        canvas.width = viewport.width;
-                        canvas.height = viewport.height;
-
-                        await page.render({ canvasContext: context, viewport }).promise;
-
-                        const imgData = canvas.toDataURL(`image/${format}`, quality);
-                        html += `
-                            <div class="preview-item">
-                                <img src="${imgData}" alt="Page ${i}">
-                                <a href="${imgData}" download="page-${i}.${format}" class="btn btn-primary" style="display:inline-block; margin-top:10px;">
-                                    Download Page ${i}
-                                </a>
-                            </div>
-                        `;
-                    }
-
-                    html += '</div>';
-                    output.innerHTML = html;
-                } catch (error) {
-                    output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-                }
-            });
-        }
-
-        // Compress PDF
-        async function initCompress() {
-            const fileInput = document.getElementById('pdfFile');
-
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const output = document.getElementById('output');
-                output.innerHTML = '<div class="status info">Compressing PDF...</div>';
-
-                try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                    const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
-                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-
-                    const originalSize = (file.size / 1024).toFixed(2);
-                    const compressedSize = (blob.size / 1024).toFixed(2);
-                    const savings = ((1 - blob.size / file.size) * 100).toFixed(1);
-
-                    output.innerHTML = `
-                        <div class="status success">
-                            <p style="font-weight:600; margin-bottom:10px;">✓ Compression Complete!</p>
-                            <p>Original Size: ${originalSize} KB</p>
-                            <p>Compressed Size: ${compressedSize} KB</p>
-                            <p>Space Saved: ${savings}%</p>
-                        </div>
-                        <a href="${url}" download="compressed.pdf" class="btn btn-success">Download Compressed PDF</a>
-                    `;
-                } catch (error) {
-                    output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-                }
-            });
-        }
-
-        // Merge PDFs
-        async function initMerge() {
-            const fileInput = document.getElementById('pdfFiles');
-            const fileList = document.getElementById('fileList');
-            const mergeBtn = document.getElementById('mergeBtn');
-
-            fileInput.addEventListener('change', (e) => {
-                pdfFiles = Array.from(e.target.files);
-                if (pdfFiles.length < 2) {
-                    fileList.innerHTML = '<div class="status error">Please select at least 2 PDF files</div>';
-                    mergeBtn.style.display = 'none';
-                    return;
-                }
-
-                let html = '<div style="margin: 20px 0;"><p style="font-weight:600; margin-bottom:10px;">Selected Files:</p>';
-                pdfFiles.forEach((f, i) => {
-                    html += `<div style="padding:10px; background:#f7fafc; margin:5px 0; border-radius:6px;">${i + 1}. ${f.name}</div>`;
-                });
-                html += '</div>';
-                fileList.innerHTML = html;
-                mergeBtn.style.display = 'inline-block';
-            });
-
-            mergeBtn.addEventListener('click', async () => {
-                const output = document.getElementById('output');
-                output.innerHTML = '<div class="status info">Merging PDFs...</div>';
-
-                try {
-                    const mergedPdf = await PDFLib.PDFDocument.create();
-
-                    for (const file of pdfFiles) {
-                        const arrayBuffer = await file.arrayBuffer();
-                        const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
-                        const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-                        pages.forEach(page => mergedPdf.addPage(page));
-                    }
-
-                    const pdfBytes = await mergedPdf.save();
-                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-
-                    output.innerHTML = `
-                        <div class="status success">
-                            <p style="font-weight:600;">✓ Successfully merged ${pdfFiles.length} PDFs!</p>
-                        </div>
-                        <a href="${url}" download="merged.pdf" class="btn btn-success">Download Merged PDF</a>
-                    `;
-                } catch (error) {
-                    output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-                }
-            });
-        }
-
-        // Split PDF
-        async function initSplit() {
-            const fileInput = document.getElementById('pdfFile');
-            const pageSelector = document.getElementById('pageSelector');
-            const pageList = document.getElementById('pageList');
-            const extractBtn = document.getElementById('extractBtn');
-
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                    const numPages = pdfDoc.getPageCount();
-                    selectedPages = [];
-
-                    let html = '';
-                    for (let i = 0; i < numPages; i++) {
-                        html += `<button class="page-btn" onclick="togglePage(${i})" id="page-${i}">${i + 1}</button>`;
-                    }
-                    pageList.innerHTML = html;
-                    pageSelector.style.display = 'block';
-                    window.currentPdfDoc = pdfDoc;
-                } catch (error) {
-                    document.getElementById('output').innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-                }
-            });
-
-            extractBtn.addEventListener('click', async () => {
-                if (selectedPages.length === 0) {
-                    alert('Please select at least one page');
-                    return;
-                }
-
-                const output = document.getElementById('output');
-                output.innerHTML = '<div class="status info">Extracting pages...</div>';
-
-                try {
-                    const newPdf = await PDFLib.PDFDocument.create();
-                    const pages = await newPdf.copyPages(window.currentPdfDoc, selectedPages);
-                    pages.forEach(page => newPdf.addPage(page));
-
-                    const pdfBytes = await newPdf.save();
-                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-
-                    output.innerHTML = `
-                        <div class="status success">
-                            <p style="font-weight:600;">✓ Extracted ${selectedPages.length} pages!</p>
-                        </div>
-                        <a href="${url}" download="extracted.pdf" class="btn btn-success">Download Extracted PDF</a>
-                    `;
-                } catch (error) {
-                    output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-                }
-            });
-        }
-
-        function togglePage(index) {
-            const btn = document.getElementById(`page-${index}`);
-            if (selectedPages.includes(index)) {
-                selectedPages = selectedPages.filter(p => p !== index);
-                btn.classList.remove('selected');
-            } else {
-                selectedPages.push(index);
-                btn.classList.add('selected');
-            }
-        }
-
-        // Rotate PDF
-        async function initRotate() {
-            const fileInput = document.getElementById('pdfFile');
-            const rotateBtn = document.getElementById('rotateBtn');
-
-            rotateBtn.addEventListener('click', async () => {
-                const file = fileInput.files[0];
-                if (!file) { alert('Please select a PDF file first'); return; }
-
-                const output = document.getElementById('output');
-                output.innerHTML = '<div class="status info">Rotating pages...</div>';
-
-                try {
-                    const rotation = parseInt(document.getElementById('rotation').value);
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                    pdfDoc.getPages().forEach(page => page.setRotation(PDFLib.degrees(rotation)));
-
-                    const pdfBytes = await pdfDoc.save();
-                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-
-                    output.innerHTML = `
-                        <div class="status success">
-                            <p style="font-weight:600;">✓ Pages rotated ${rotation}°!</p>
-                        </div>
-                        <a href="${url}" download="rotated.pdf" class="btn btn-success">Download Rotated PDF</a>
-                    `;
-                } catch (error) {
-                    output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-                }
-            });
-        }
-
-        // PDF Info
-        async function initInfo() {
-            const fileInput = document.getElementById('pdfFile');
-
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const output = document.getElementById('output');
-                output.innerHTML = '<div class="status info">Reading PDF information...</div>';
-
-                try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                    const numPages = pdfDoc.getPageCount();
-                    const fileSize = (file.size / 1024).toFixed(2);
-
-                    output.innerHTML = `
-                        <div class="status success">
-                            <h3 style="margin-bottom:15px; font-size:1.2em;">📄 PDF Information</h3>
-                            <p><strong>Filename:</strong> ${file.name}</p>
-                            <p><strong>File Size:</strong> ${fileSize} KB</p>
-                            <p><strong>Number of Pages:</strong> ${numPages}</p>
-                            <p><strong>Title:</strong> ${pdfDoc.getTitle() || 'N/A'}</p>
-                            <p><strong>Author:</strong> ${pdfDoc.getAuthor() || 'N/A'}</p>
-                            <p><strong>Subject:</strong> ${pdfDoc.getSubject() || 'N/A'}</p>
-                        </div>
-                    `;
-                } catch (error) {
-                    output.innerHTML = `<div class="status error">Error: ${error.message}</div>`;
-                }
-            });
-        }
-
-        // ── OCR Tool ─────────────────────────────────────────────────
-
-        function initOcr() {
-            const fileInput = document.getElementById('pdfFile');
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                await runOcr(file);
-            });
-        }
-
-        async function runOcr(file) {
-            const output = document.getElementById('output');
-            const lang = document.getElementById('ocrLang').value;
-            const scale = parseInt(document.getElementById('ocrScale').value);
-
-            output.innerHTML = `
-                <div class="status info" id="ocrStatus">
-                    <strong>⏳ Starting OCR…</strong>
-                    <div class="ocr-progress-wrap" style="margin-top:10px;">
-                        <div class="ocr-progress-bar" id="ocrBar"></div>
-                    </div>
-                    <p class="ocr-log" id="ocrLog">Loading PDF…</p>
-                </div>
-            `;
-
-            const bar  = document.getElementById('ocrBar');
-            const log  = document.getElementById('ocrLog');
-
-            function setProgress(pct, msg) {
-                bar.style.width = pct + '%';
-                log.textContent = msg;
-            }
-
-            try {
-                // 1. Load PDF with pdf.js
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                const numPages = pdf.numPages;
-
-                setProgress(5, `PDF loaded — ${numPages} page(s) found. Initialising OCR engine…`);
-
-                // 2. Create Tesseract worker (lang data downloaded automatically on first run)
-                const worker = await Tesseract.createWorker(lang, 1);
-
-                const pageTexts = [];
-
-                // 3. Render each page → canvas → OCR
-                for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-                    const pageProgress = 5 + ((pageNum - 1) / numPages) * 90;
-                    setProgress(pageProgress, `Rendering page ${pageNum} of ${numPages}…`);
-
-                    const page     = await pdf.getPage(pageNum);
-                    const viewport = page.getViewport({ scale });
-                    const canvas   = document.createElement('canvas');
-                    canvas.width   = viewport.width;
-                    canvas.height  = viewport.height;
-                    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-
-                    setProgress(pageProgress + (45 / numPages), `Running OCR on page ${pageNum} of ${numPages}…`);
-
-                    const { data: { text } } = await worker.recognize(canvas);
-                    pageTexts.push({ page: pageNum, text: text.trim() });
-                }
-
-                await worker.terminate();
-
-                setProgress(100, 'Done!');
-
-                // 4. Assemble full text
-                const fullText = pageTexts.map(p =>
-                    numPages > 1
-                        ? `[Page ${p.page}]\n${p.text}`
-                        : p.text
-                ).join('\n\n' + '─'.repeat(40) + '\n\n');
-
-                const wordCount = fullText.split(/\s+/).filter(Boolean).length;
-                const charCount = fullText.length;
-
-                // 5. Render result UI
-                const rtlLangs = ['div', 'ara', 'heb', 'fas', 'urd'];
-                const isRtl = rtlLangs.some(l => lang === l || lang.startsWith(l + '+') || lang.endsWith('+' + l));
-                output.innerHTML = `
-                    <div class="status success" style="margin-bottom:16px;">
-                        <strong>✓ OCR Complete</strong> —
-                        ${numPages} page(s) · ${wordCount.toLocaleString()} words · ${charCount.toLocaleString()} characters
-                    </div>
-                    <textarea class="ocr-result-box" id="ocrText" spellcheck="false"
-                        dir="${isRtl ? 'rtl' : 'ltr'}"
-                        style="text-align:${isRtl ? 'right' : 'left'}"
-                    >${escapeHtml(fullText)}</textarea>
-                    <div class="ocr-actions">
-                        <button class="btn btn-success" onclick="downloadOcrText()">⬇ Download .txt</button>
-                        <button class="btn btn-primary" onclick="copyOcrText(this)">📋 Copy to Clipboard</button>
-                    </div>
-                `;
-
-                // Store text for download/copy
-                window._ocrText    = fullText;
-                window._ocrFilename = file.name.replace(/\.pdf$/i, '') + '_ocr.txt';
-
-            } catch (err) {
-                output.innerHTML = `<div class="status error"><strong>OCR failed:</strong> ${err.message}</div>`;
-                console.error(err);
-            }
-        }
-
-        function escapeHtml(str) {
-            return str
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-        }
-
-        function downloadOcrText() {
-            const text = document.getElementById('ocrText').value;
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
-            a.href     = url;
-            a.download = window._ocrFilename || 'ocr_output.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        async function copyOcrText(btn) {
-            const text = document.getElementById('ocrText').value;
-            try {
-                await navigator.clipboard.writeText(text);
-                const orig = btn.textContent;
-                btn.textContent = '✓ Copied!';
-                setTimeout(() => btn.textContent = orig, 2000);
-            } catch {
-                alert('Copy failed — please select the text manually.');
-            }
-        }
-    </script>
+    PDFKit
+  </a>
+  <div class="nb-badge">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    100% Local &middot; No Uploads
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-pill">
+    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#a5b4fc" stroke-width="2.2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Free &middot; Private &middot; No Sign-up
+  </div>
+  <h1>Your PDF, your <em>browser.</em></h1>
+  <p>Every tool runs entirely on your device. No files are ever sent to any server.</p>
+</section>
+
+<!-- MAIN -->
+<main class="main">
+  <p class="section-label">Choose a tool to get started</p>
+  <div class="tool-grid" id="toolGrid"></div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="backdrop" role="dialog" aria-modal="true">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div class="mh-icon" id="mhIcon"></div>
+      <h2 class="modal-title" id="mhTitle"></h2>
+      <button class="modal-x" id="modalX" aria-label="Close">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<footer class="footer">PDFKit &mdash; All processing is local. Your files never leave your device.</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+/* ── PDF.js worker ── */
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* ── Inline SVG icons ── */
+const I = {
+  file:     `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>`,
+  image:    `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>`,
+  compress: `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,14 10,14 10,20"/><polyline points="20,10 14,10 14,4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>`,
+  merge:    `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+  split:    `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><line x1="12" y1="3" x2="12" y2="21"/></svg>`,
+  rotate:   `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+  info:     `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  ocr:      `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>`,
+  upload:   `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16,16 12,12 8,16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>`,
+  download: `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,17 12,21 16,17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>`,
+  copy:     `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  check:    `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>`,
+  warn:     `<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+};
+
+/* ── Tool definitions ── */
+const TOOLS = [
+  { id:'convert',  label:'PDF to Image',    desc:'Export pages as high-res PNG or JPEG',      icon:'image'    },
+  { id:'compress', label:'Compress PDF',     desc:'Reduce file size without re-encoding',       icon:'compress' },
+  { id:'merge',    label:'Merge PDFs',       desc:'Combine multiple PDFs into one file',        icon:'merge'    },
+  { id:'split',    label:'Split PDF',        desc:'Extract specific pages into a new PDF',      icon:'split'    },
+  { id:'rotate',   label:'Rotate Pages',     desc:'Rotate all pages 90°, 180° or 270°',        icon:'rotate'   },
+  { id:'info',     label:'PDF Info',         desc:'Inspect metadata, page count & dimensions',  icon:'info'     },
+  { id:'ocr',      label:'PDF to Text (OCR)', desc:'Extract text from scans. Supports Dhivehi/Thaana.', icon:'ocr', isNew:true },
+];
+
+/* ── Build grid ── */
+const grid = document.getElementById('toolGrid');
+TOOLS.forEach(t => {
+  const card = document.createElement('div');
+  card.className = 'tool-card' + (t.isNew ? ' is-new' : '');
+  card.innerHTML = `<div class="card-icon">${I[t.icon]}</div><div class="card-body"><h3>${t.label}</h3><p>${t.desc}</p></div>`;
+  card.addEventListener('click', () => openModal(t));
+  grid.appendChild(card);
+});
+
+/* ── Modal ── */
+let _splitDoc = null, _pdfFiles = [], _selectedPages = [], _rotateFile = null;
+
+function openModal(tool) {
+  document.getElementById('mhIcon').innerHTML  = I[tool.icon];
+  document.getElementById('mhTitle').textContent = tool.label;
+  document.getElementById('modalBody').innerHTML = toolHTML(tool.id);
+  document.getElementById('backdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  _selectedPages = []; _pdfFiles = []; _splitDoc = null; _rotateFile = null;
+  setTimeout(() => initTool(tool.id), 70);
+}
+
+function closeModal() {
+  document.getElementById('backdrop').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('modalBody').innerHTML = '';
+}
+
+document.getElementById('modalX').addEventListener('click', closeModal);
+document.getElementById('backdrop').addEventListener('click', e => { if (e.target.id === 'backdrop') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ── Helpers ── */
+function dropZone(dzId, inputId, multi, cb) {
+  const dz = document.getElementById(dzId);
+  const inp = document.getElementById(inputId);
+  if (!dz || !inp) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); cb(multi ? e.dataTransfer.files : [e.dataTransfer.files[0]]); });
+  inp.addEventListener('change', e => cb(e.target.files));
+}
+
+function showChosen(dzId, files) {
+  const el = document.querySelector(`#${dzId} .file-chosen`);
+  if (!el || !files || !files.length) return;
+  el.textContent = files.length === 1 ? `✓  ${files[0].name}` : `✓  ${files.length} files selected`;
+  el.style.display = 'flex';
+}
+
+function status(type, msg) {
+  const ic = { info: I.warn, success: I.check, error: I.warn };
+  const cl = { info: 's-info', success: 's-success', error: 's-error' };
+  return `<div class="status ${cl[type]}">${ic[type]}<span>${msg}</span></div>`;
+}
+function spinner(msg) { return `<div class="spin-wrap"><div class="spinner"></div><span>${msg}</span></div>`; }
+function dlBtn(url, name, label) { return `<a href="${url}" download="${name}" class="btn btn-success">${I.download}${label}</a>`; }
+
+/* ── Tool HTML ── */
+function toolHTML(id) {
+  const dz = (multi, hint) => `
+    <div class="drop-zone" id="dz">
+      <input type="file" id="pdfFile" accept=".pdf"${multi ? ' multiple' : ''}>
+      <div class="dz-icon">${I.upload}</div>
+      <strong>Drop your PDF${multi ? 's' : ''} here</strong>
+      <span>${hint}</span>
+      <div class="file-chosen"></div>
+    </div>`;
+
+  switch(id) {
+    case 'convert': return `
+      ${dz(false,'or click to browse')}
+      <div class="ctrl-row">
+        <div class="ctrl-grp"><label>Format</label>
+          <select id="imgFmt"><option value="png">PNG</option><option value="jpeg">JPEG</option></select></div>
+        <div class="ctrl-grp"><label>Scale / DPI</label>
+          <input type="range" id="imgScale" min="1" max="4" step="0.5" value="2"></div>
+        <div class="ctrl-val" id="scaleVal" style="align-self:flex-end;padding-bottom:10px;">2× ≈ 144 DPI</div>
+        <div class="ctrl-grp"><label>JPEG Quality</label>
+          <input type="range" id="imgQual" min="10" max="100" value="90"></div>
+        <div class="ctrl-val" id="qualVal" style="align-self:flex-end;padding-bottom:10px;">90%</div>
+      </div>
+      <div id="output"></div>`;
+
+    case 'compress': return `${dz(false,'or click to browse')}<div id="output"></div>`;
+
+    case 'merge': return `
+      ${dz(true,'or click to browse — files merge in order').replace('id="pdfFile"','id="pdfFiles"')}
+      <div id="fileList"></div>
+      <button id="mergeBtn" class="btn btn-primary" style="display:none">${I.merge} Merge Files</button>
+      <div id="output"></div>`;
+
+    case 'split': return `
+      ${dz(false,'or click to browse — then select pages to extract')}
+      <div id="pageSelector" style="display:none">
+        <p style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Select pages to extract</p>
+        <div id="pageList" class="page-grid"></div>
+        <button id="extractBtn" class="btn btn-primary" style="margin-top:4px">${I.split} Extract Selected</button>
+      </div>
+      <div id="output"></div>`;
+
+    case 'rotate': return `
+      ${dz(false,'or click to browse')}
+      <div class="ctrl-row">
+        <div class="ctrl-grp"><label>Rotation</label>
+          <select id="rotation">
+            <option value="90">90° Clockwise</option>
+            <option value="180">180°</option>
+            <option value="270">270° (90° Counter-CW)</option>
+          </select></div>
+        <button id="rotateBtn" class="btn btn-primary" style="align-self:flex-end">${I.rotate} Rotate All Pages</button>
+      </div>
+      <div id="output"></div>`;
+
+    case 'info': return `${dz(false,'or click to browse')}<div id="output"></div>`;
+
+    case 'ocr': return `
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Renders each page as an image and runs OCR locally in your browser.
+        Selecting <strong>Dhivehi</strong> automatically switches the output to right-to-left (Thaana script).
+      </p>
+      ${dz(false,'or click to browse')}
+      <div class="ctrl-row">
+        <div class="ctrl-grp"><label>Language</label>
+          <select id="ocrLang">
+            <option value="eng">English</option>
+            <optgroup label="── Dhivehi / Thaana ──">
+              <option value="div">Dhivehi — ދިވެހި</option>
+              <option value="div+eng">Dhivehi + English (mixed)</option>
+            </optgroup>
+            <optgroup label="── Other ──">
+              <option value="ara">Arabic</option>
+              <option value="fra">French</option>
+              <option value="deu">German</option>
+              <option value="spa">Spanish</option>
+              <option value="por">Portuguese</option>
+              <option value="ita">Italian</option>
+              <option value="chi_sim">Chinese (Simplified)</option>
+              <option value="jpn">Japanese</option>
+              <option value="kor">Korean</option>
+              <option value="rus">Russian</option>
+              <option value="hin">Hindi</option>
+            </optgroup>
+          </select></div>
+        <div class="ctrl-grp"><label>Render Quality</label>
+          <select id="ocrScale">
+            <option value="2">Standard — faster</option>
+            <option value="3">High — slower, more accurate</option>
+          </select></div>
+      </div>
+      <p style="font-size:.72rem;color:var(--faint);margin-bottom:14px">💡 First run downloads the language model (~10–20 MB). Subsequent runs use the browser cache.</p>
+      <div id="output"></div>`;
+  }
+}
+
+/* ── Tool inits ── */
+function initTool(id) {
+  switch(id) {
+    case 'convert':  initConvert();  break;
+    case 'compress': initCompress(); break;
+    case 'merge':    initMerge();    break;
+    case 'split':    initSplit();    break;
+    case 'rotate':   initRotate();   break;
+    case 'info':     initInfo();     break;
+    case 'ocr':      initOcr();      break;
+  }
+}
+
+/* ── Convert ── */
+function initConvert() {
+  const scaleEl = document.getElementById('imgScale');
+  const qualEl  = document.getElementById('imgQual');
+  const scaleV  = document.getElementById('scaleVal');
+  const qualV   = document.getElementById('qualVal');
+  const DPI = {'1':'72','1.5':'108','2':'144','2.5':'180','3':'216','3.5':'252','4':'288'};
+  scaleEl.addEventListener('input', () => { scaleV.textContent = `${scaleEl.value}× ≈ ${DPI[scaleEl.value]||Math.round(scaleEl.value*72)} DPI`; });
+  qualEl.addEventListener('input',  () => { qualV.textContent  = qualEl.value + '%'; });
+
+  dropZone('dz','pdfFile',false, async files => {
+    const file = files[0]; if (!file) return;
+    showChosen('dz', files);
+    const out = document.getElementById('output');
+    out.innerHTML = spinner('Rendering pages…');
+    try {
+      const pdf   = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      const fmt   = document.getElementById('imgFmt').value;
+      const scale = parseFloat(scaleEl.value);
+      const qual  = parseInt(qualEl.value) / 100;
+      let html = '<div class="preview-grid">';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const vp   = page.getViewport({ scale });
+        const cv   = document.createElement('canvas');
+        cv.width = vp.width; cv.height = vp.height;
+        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+        const src = cv.toDataURL(`image/${fmt}`, qual);
+        html += `<div class="preview-card"><img src="${src}" alt="Page ${i}"><div class="preview-foot"><a href="${src}" download="page-${i}.${fmt}" class="btn btn-primary" style="font-size:.75rem;padding:6px 12px">${I.download} Page ${i}</a></div></div>`;
+      }
+      out.innerHTML = status('success',`${pdf.numPages} page(s) converted.`) + html + '</div>';
+    } catch(e) { out.innerHTML = status('error', `Error: ${e.message}`); }
+  });
+}
+
+/* ── Compress ── */
+function initCompress() {
+  dropZone('dz','pdfFile',false, async files => {
+    const file = files[0]; if (!file) return;
+    showChosen('dz', files);
+    const out = document.getElementById('output');
+    out.innerHTML = spinner('Compressing…');
+    try {
+      const doc   = await PDFLib.PDFDocument.load(await file.arrayBuffer());
+      const bytes = await doc.save({ useObjectStreams: true });
+      const blob  = new Blob([bytes], { type:'application/pdf' });
+      const url   = URL.createObjectURL(blob);
+      const orig  = (file.size/1024).toFixed(1);
+      const comp  = (blob.size/1024).toFixed(1);
+      const pct   = ((1 - blob.size/file.size)*100).toFixed(1);
+      out.innerHTML = status('success',`${orig} KB → <strong>${comp} KB</strong> — saved ${pct}%`)
+        + `<div class="btn-row">${dlBtn(url,'compressed.pdf','Download Compressed PDF')}</div>`;
+    } catch(e) { out.innerHTML = status('error', `Error: ${e.message}`); }
+  });
+}
+
+/* ── Merge ── */
+function initMerge() {
+  const mergeBtn = document.getElementById('mergeBtn');
+  dropZone('dz','pdfFiles',true, files => {
+    _pdfFiles = Array.from(files);
+    showChosen('dz', files);
+    const fl = document.getElementById('fileList');
+    if (_pdfFiles.length < 2) { fl.innerHTML = status('error','Please select at least 2 PDF files.'); mergeBtn.style.display='none'; return; }
+    fl.innerHTML = `<div class="file-list">${_pdfFiles.map((f,i)=>`<div class="file-item">${I.file}<span class="file-num">${i+1}</span>${f.name}</div>`).join('')}</div>`;
+    mergeBtn.style.display = 'inline-flex';
+  });
+  mergeBtn.addEventListener('click', async () => {
+    const out = document.getElementById('output');
+    out.innerHTML = spinner('Merging PDFs…');
+    try {
+      const merged = await PDFLib.PDFDocument.create();
+      for (const f of _pdfFiles) {
+        const src   = await PDFLib.PDFDocument.load(await f.arrayBuffer());
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach(p => merged.addPage(p));
+      }
+      const blob = new Blob([await merged.save()], { type:'application/pdf' });
+      const url  = URL.createObjectURL(blob);
+      out.innerHTML = status('success',`Merged ${_pdfFiles.length} PDFs successfully.`)
+        + `<div class="btn-row">${dlBtn(url,'merged.pdf','Download Merged PDF')}</div>`;
+    } catch(e) { out.innerHTML = status('error', `Error: ${e.message}`); }
+  });
+}
+
+/* ── Split ── */
+function initSplit() {
+  const sel     = document.getElementById('pageSelector');
+  const pl      = document.getElementById('pageList');
+  const exBtn   = document.getElementById('extractBtn');
+
+  dropZone('dz','pdfFile',false, async files => {
+    const file = files[0]; if (!file) return;
+    showChosen('dz', files);
+    try {
+      _splitDoc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
+      const n = _splitDoc.getPageCount();
+      _selectedPages = [];
+      pl.innerHTML = Array.from({length:n},(_,i)=>`<button class="page-btn" data-i="${i}">${i+1}</button>`).join('');
+      pl.querySelectorAll('.page-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = parseInt(btn.dataset.i);
+          if (_selectedPages.includes(i)) { _selectedPages = _selectedPages.filter(p=>p!==i); btn.classList.remove('selected'); }
+          else { _selectedPages.push(i); btn.classList.add('selected'); }
+        });
+      });
+      sel.style.display = 'block';
+    } catch(e) { document.getElementById('output').innerHTML = status('error',`Error: ${e.message}`); }
+  });
+
+  exBtn.addEventListener('click', async () => {
+    if (!_selectedPages.length) { alert('Select at least one page.'); return; }
+    const out = document.getElementById('output');
+    out.innerHTML = spinner('Extracting pages…');
+    try {
+      const np    = await PDFLib.PDFDocument.create();
+      const pages = await np.copyPages(_splitDoc, _selectedPages);
+      pages.forEach(p => np.addPage(p));
+      const blob = new Blob([await np.save()], { type:'application/pdf' });
+      const url  = URL.createObjectURL(blob);
+      out.innerHTML = status('success',`Extracted ${_selectedPages.length} page(s).`)
+        + `<div class="btn-row">${dlBtn(url,'extracted.pdf','Download Extracted PDF')}</div>`;
+    } catch(e) { out.innerHTML = status('error',`Error: ${e.message}`); }
+  });
+}
+
+/* ── Rotate ── */
+function initRotate() {
+  dropZone('dz','pdfFile',false, files => { _rotateFile = files[0]; showChosen('dz', files); });
+  document.getElementById('rotateBtn').addEventListener('click', async () => {
+    if (!_rotateFile) { alert('Please select a PDF first.'); return; }
+    const out = document.getElementById('output');
+    out.innerHTML = spinner('Rotating pages…');
+    try {
+      const deg = parseInt(document.getElementById('rotation').value);
+      const doc = await PDFLib.PDFDocument.load(await _rotateFile.arrayBuffer());
+      doc.getPages().forEach(p => p.setRotation(PDFLib.degrees(deg)));
+      const blob = new Blob([await doc.save()], { type:'application/pdf' });
+      const url  = URL.createObjectURL(blob);
+      out.innerHTML = status('success',`All pages rotated ${deg}°.`)
+        + `<div class="btn-row">${dlBtn(url,'rotated.pdf','Download Rotated PDF')}</div>`;
+    } catch(e) { out.innerHTML = status('error',`Error: ${e.message}`); }
+  });
+}
+
+/* ── Info ── */
+function initInfo() {
+  dropZone('dz','pdfFile',false, async files => {
+    const file = files[0]; if (!file) return;
+    showChosen('dz', files);
+    const out = document.getElementById('output');
+    out.innerHTML = spinner('Reading metadata…');
+    try {
+      const doc  = await PDFLib.PDFDocument.load(await file.arrayBuffer());
+      const page = doc.getPages()[0];
+      const { width, height } = page.getSize();
+      const row = (label, val) => `<div class="info-item"><dt>${label}</dt><dd>${val||'—'}</dd></div>`;
+      out.innerHTML = status('success','PDF metadata loaded.')
+        + `<dl class="info-grid">
+          ${row('Filename', file.name)}
+          ${row('File Size', (file.size/1024).toFixed(1)+' KB')}
+          ${row('Pages', doc.getPageCount())}
+          ${row('Page Size', `${Math.round(width)} × ${Math.round(height)} pt`)}
+          ${row('Title',   doc.getTitle())}
+          ${row('Author',  doc.getAuthor())}
+          ${row('Subject', doc.getSubject())}
+          ${row('Creator', doc.getCreator())}
+        </dl>`;
+    } catch(e) { out.innerHTML = status('error',`Error: ${e.message}`); }
+  });
+}
+
+/* ── OCR ── */
+function initOcr() {
+  dropZone('dz','pdfFile',false, async files => {
+    const file = files[0]; if (!file) return;
+    showChosen('dz', files);
+    await runOcr(file);
+  });
+}
+
+async function runOcr(file) {
+  const out   = document.getElementById('output');
+  const lang  = document.getElementById('ocrLang').value;
+  const scale = parseInt(document.getElementById('ocrScale').value);
+
+  out.innerHTML = `
+    <div class="status s-info">
+      ${I.warn}
+      <div style="flex:1">
+        <strong>Running OCR…</strong>
+        <div class="prog-wrap"><div class="prog-bar" id="ocrBar"></div></div>
+        <p class="prog-lbl" id="ocrLog">Loading PDF…</p>
+      </div>
+    </div>`;
+
+  const setP = (pct, msg) => {
+    const b = document.getElementById('ocrBar');
+    const l = document.getElementById('ocrLog');
+    if (b) b.style.width = pct + '%';
+    if (l) l.textContent = msg;
+  };
+
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const n   = pdf.numPages;
+    setP(5, `PDF loaded — ${n} page(s). Starting OCR engine…`);
+
+    const worker = await Tesseract.createWorker(lang, 1);
+    const texts  = [];
+
+    for (let i = 1; i <= n; i++) {
+      setP(5 + ((i-1)/n)*88, `Rendering page ${i} of ${n}…`);
+      const page = await pdf.getPage(i);
+      const vp   = page.getViewport({ scale });
+      const cv   = document.createElement('canvas');
+      cv.width = vp.width; cv.height = vp.height;
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+
+      setP(5 + ((i-.5)/n)*88, `Recognising text on page ${i} of ${n}…`);
+      const { data: { text } } = await worker.recognize(cv);
+      texts.push({ page: i, text: text.trim() });
+    }
+
+    await worker.terminate();
+    setP(100, 'Done!');
+
+    const full  = texts.map(p => n > 1 ? `[Page ${p.page}]\n${p.text}` : p.text).join('\n\n' + '─'.repeat(40) + '\n\n');
+    const words = full.split(/\s+/).filter(Boolean).length;
+    const chars = full.length;
+
+    const RTL = ['div','ara','heb','fas','urd'];
+    const rtl = RTL.some(l => lang === l || lang.startsWith(l+'+') || lang.endsWith('+'+l));
+
+    window._ocrText     = full;
+    window._ocrFilename = file.name.replace(/\.pdf$/i,'') + '_ocr.txt';
+
+    out.innerHTML = `
+      ${status('success',`OCR complete — ${n} page(s) · ${words.toLocaleString()} words · ${chars.toLocaleString()} chars`)}
+      <textarea class="ocr-box" id="ocrText" spellcheck="false" dir="${rtl?'rtl':'ltr'}" style="text-align:${rtl?'right':'left'}">${esc(full)}</textarea>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="dlOcr()">${I.download} Download .txt</button>
+        <button class="btn btn-ghost"   onclick="cpOcr(this)">${I.copy} Copy to Clipboard</button>
+      </div>`;
+  } catch(err) {
+    out.innerHTML = status('error',`OCR failed: ${err.message}`);
+    console.error(err);
+  }
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function dlOcr() {
+  const t = document.getElementById('ocrText').value;
+  const a = document.createElement('a');
+  a.href  = URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));
+  a.download = window._ocrFilename || 'ocr_output.txt';
+  a.click();
+}
+
+async function cpOcr(btn) {
+  const t = document.getElementById('ocrText').value;
+  try {
+    await navigator.clipboard.writeText(t);
+    const orig = btn.innerHTML;
+    btn.innerHTML = I.check + ' Copied!';
+    setTimeout(() => btn.innerHTML = orig, 2200);
+  } catch { alert('Copy failed — select the text manually.'); }
+}
+</script>
 </body>
 </html>
