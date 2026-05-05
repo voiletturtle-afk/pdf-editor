@@ -1060,10 +1060,10 @@ async function runOcr(file) {
     .trim();
 }
 
-     const result = await worker.recognize(canvas);
+    const result = await worker.recognize(canvas);
     const rawText = result?.data?.text || '';
     
-    const cleanedText = uiLang === 'thaa'
+    const cleanedText = uiLang === 'thaa' || uiLang === 'thaa+eng'
       ? cleanThaanaOcr(rawText)
       : cleanOcrText(rawText, uiLang);
     
@@ -1071,7 +1071,6 @@ async function runOcr(file) {
       page: i,
       text: cleanedText.trim()
     });
-   
 
     const parts = [];
     for (let i = 0; i < canvases.length; i++) {
